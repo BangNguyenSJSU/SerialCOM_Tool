@@ -1,0 +1,38 @@
+# PySerial GUI Communication Tool - Dependencies
+# Python 3.7+ required
+
+# Core Dependencies
+pyserial>=3.5              # Serial port communication library
+                           # Provides cross-platform serial port access
+                           # Used for all serial I/O operations
+
+# Standard Library Dependencies (included with Python)
+# These are listed for documentation purposes only:
+# - tkinter               # GUI framework (usually included with Python)
+# - threading             # Multi-threading support
+# - queue                 # Thread-safe data passing
+# - datetime              # Timestamp generation
+# - platform              # OS detection
+# - glob                  # File pattern matching
+# - json                  # JSON data handling (unused but imported)
+# - dataclasses           # Data class support (Python 3.7+)
+# - enum                  # Enumeration support
+# - typing                # Type hints support
+
+# Optional Development Dependencies
+# pytest>=7.0.0           # Testing framework (for running test_protocol.py)
+# black>=22.0.0           # Code formatter
+# pylint>=2.15.0          # Code linter
+# mypy>=0.990             # Static type checker
+
+# Platform-Specific Notes:
+# macOS/Linux:
+#   - socat (install via brew/apt) for virtual serial ports
+# Windows:
+#   - com0com or similar for virtual serial ports
+# Linux:
+#   - python3-tk package may need separate installation:
+#     sudo apt-get install python3-tk
+
+# Installation:
+# pip install -r requirements.txt
