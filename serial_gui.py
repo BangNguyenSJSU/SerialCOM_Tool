@@ -6,6 +6,7 @@ A cross-platform serial communication tool with Tkinter interface
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
+from tkinter import font as tkfont
 import serial
 import serial.tools.list_ports
 import threading
@@ -19,6 +20,35 @@ from host_tab import HostTab
 from device_tab import DeviceTab
 
 
+class ToolTip:
+    """Create tooltips for widgets"""
+    def __init__(self, widget, text=''):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+        self.widget.bind("<Enter>", self.on_enter)
+        self.widget.bind("<Leave>", self.on_leave)
+    
+    def on_enter(self, event=None):
+        x, y, _, _ = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 25
+        
+        self.tooltip = tk.Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+        
+        label = tk.Label(self.tooltip, text=self.text, justify=tk.LEFT,
+                        background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+                        font=("Arial", 9))
+        label.pack()
+    
+    def on_leave(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+
 class SerialGUI:
     """Main GUI application for serial communication with protocol support.
     
@@ -27,6 +57,32 @@ class SerialGUI:
     It handles threading for non-blocking I/O and maintains the GUI event loop.
     """
     
+    # Color scheme for better UI visualization
+    COLORS = {
+        'bg_main': '#f0f0f0',           # Light gray main background
+        'bg_connection': '#e3f2fd',     # Light blue for connection section
+        'bg_options': '#f3e5f5',        # Light purple for options
+        'bg_transmit': '#e8f5e9',       # Light green for transmit section
+        'bg_macros': '#fff3e0',         # Light amber for macro buttons
+        'bg_display': '#ffffff',        # White for text displays
+        'fg_connected': '#4caf50',      # Green for connected status
+        'fg_disconnected': '#f44336',   # Red for disconnected status
+        'fg_highlight': '#2196f3',      # Blue for highlights
+        'border_color': '#cccccc',      # Light gray for borders
+        'button_active': '#1976d2',     # Dark blue for active buttons
+        'button_hover': '#42a5f5',      # Light blue for hover
+        
+        # Tab-specific colors
+        'tab_data': '#2196F3',          # Blue for Data Display tab
+        'tab_data_bg': '#E3F2FD',       # Light blue background
+        'tab_hex': '#9C27B0',           # Purple for Hex Display tab
+        'tab_hex_bg': '#F3E5F5',        # Light purple background
+        'tab_host': '#4CAF50',          # Green for Host tab
+        'tab_host_bg': '#E8F5E9',       # Light green background
+        'tab_device': '#FF9800',        # Orange for Device tab
+        'tab_device_bg': '#FFF3E0',     # Light orange background
+    }
+    
     def __init__(self, root: tk.Tk):
         """Initialize the SerialGUI application.
         
@@ -34,9 +90,10 @@ class SerialGUI:
             root: The Tkinter root window instance
         """
         self.root = root
-        self.root.title("PySerial Communication Tool")
+        self.root.title("Serial Communication Tool")
         self.root.geometry("1400x900")
         self.root.minsize(1200, 800)
+        self.root.configure(bg=self.COLORS['bg_main'])
         
         # Serial connection state management
         self.serial_port: Optional[serial.Serial] = None  # Active serial port instance
@@ -71,14 +128,58 @@ class SerialGUI:
         # Bind window close event
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
     
+    def setup_styles(self):
+        """Configure ttk styles with custom colors"""
+        style = ttk.Style()
+        
+        # Configure label styles for different sections
+        style.configure('Connection.TLabel', background=self.COLORS['bg_connection'])
+        style.configure('Options.TLabel', background=self.COLORS['bg_options'])
+        style.configure('Transmit.TLabel', background=self.COLORS['bg_transmit'])
+        style.configure('Macros.TLabel', background=self.COLORS['bg_macros'])
+        
+        # Configure button styles
+        style.configure('Connect.TButton', foreground=self.COLORS['fg_connected'])
+        style.configure('Disconnect.TButton', foreground=self.COLORS['fg_disconnected'])
+        
+        # Configure LabelFrame styles
+        style.configure('Connection.TLabelframe', background=self.COLORS['bg_connection'])
+        style.configure('Options.TLabelframe', background=self.COLORS['bg_options'])
+        style.configure('Transmit.TLabelframe', background=self.COLORS['bg_transmit'])
+        style.configure('Macros.TLabelframe', background=self.COLORS['bg_macros'])
+        style.configure('Macros.TLabelframe.Label', background=self.COLORS['bg_macros'])
+        
+        # Configure Notebook tab styles for better visibility
+        style.configure('TNotebook', background=self.COLORS['bg_main'], borderwidth=0)
+        style.configure('TNotebook.Tab', 
+                       padding=[20, 12],  # Increased padding for larger tabs
+                       font=('Arial', 11, 'bold'))  # Bold font for better visibility
+        
+        # Configure tab colors for different states
+        style.map('TNotebook.Tab',
+                 background=[('selected', '#ffffff'),  # White background for selected tab
+                            ('active', '#e0e0e0')],    # Light gray on hover
+                 foreground=[('selected', '#000000'),  # Black text for selected
+                            ('active', '#333333')],     # Dark gray on hover
+                 expand=[('selected', [1, 1, 1, 0])])  # Expand selected tab
+        
+        # Custom styles for each tab (for visual differentiation)
+        style.configure('Data.TFrame', background=self.COLORS['tab_data_bg'])
+        style.configure('Hex.TFrame', background=self.COLORS['tab_hex_bg'])
+        style.configure('Host.TFrame', background=self.COLORS['tab_host_bg'])
+        style.configure('Device.TFrame', background=self.COLORS['tab_device_bg'])
+    
     def create_widgets(self):
         """Create all GUI widgets"""
-        # Top frame - Connection controls
-        top_frame = ttk.Frame(self.root, padding="5")
-        top_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        # Configure styles for ttk widgets
+        self.setup_styles()
+        
+        # Top frame - Connection controls with blue background
+        top_frame = tk.Frame(self.root, bg=self.COLORS['bg_connection'], relief=tk.RAISED, bd=1)
+        top_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
         
         # Port selection
-        ttk.Label(top_frame, text="Port:").grid(row=0, column=0, padx=5)
+        ttk.Label(top_frame, text="Port:", style='Connection.TLabel').grid(row=0, column=0, padx=5, pady=5)
         self.port_var = tk.StringVar()
         self.port_combo = ttk.Combobox(top_frame, textvariable=self.port_var, width=20)
         self.port_combo.grid(row=0, column=1, padx=5)
@@ -88,28 +189,28 @@ class SerialGUI:
         self.refresh_btn.grid(row=0, column=2, padx=5)
         
         # Baud rate selection
-        ttk.Label(top_frame, text="Baud:").grid(row=0, column=3, padx=5)
+        ttk.Label(top_frame, text="Baud:", style='Connection.TLabel').grid(row=0, column=3, padx=5, pady=5)
         self.baud_var = tk.StringVar(value="9600")
         baud_rates = ["1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200"]
         self.baud_combo = ttk.Combobox(top_frame, textvariable=self.baud_var, values=baud_rates, width=10)
         self.baud_combo.grid(row=0, column=4, padx=5)
         
         # Data bits
-        ttk.Label(top_frame, text="Data:").grid(row=0, column=5, padx=5)
+        ttk.Label(top_frame, text="Data:", style='Connection.TLabel').grid(row=0, column=5, padx=5, pady=5)
         self.databits_var = tk.StringVar(value="8")
         databits = ["5", "6", "7", "8"]
         self.databits_combo = ttk.Combobox(top_frame, textvariable=self.databits_var, values=databits, width=5)
         self.databits_combo.grid(row=0, column=6, padx=5)
         
         # Parity
-        ttk.Label(top_frame, text="Parity:").grid(row=0, column=7, padx=5)
+        ttk.Label(top_frame, text="Parity:", style='Connection.TLabel').grid(row=0, column=7, padx=5, pady=5)
         self.parity_var = tk.StringVar(value="None")
         parities = ["None", "Even", "Odd", "Mark", "Space"]
         self.parity_combo = ttk.Combobox(top_frame, textvariable=self.parity_var, values=parities, width=8)
         self.parity_combo.grid(row=0, column=8, padx=5)
         
         # Stop bits
-        ttk.Label(top_frame, text="Stop:").grid(row=0, column=9, padx=5)
+        ttk.Label(top_frame, text="Stop:", style='Connection.TLabel').grid(row=0, column=9, padx=5, pady=5)
         self.stopbits_var = tk.StringVar(value="1")
         stopbits = ["1", "1.5", "2"]
         self.stopbits_combo = ttk.Combobox(top_frame, textvariable=self.stopbits_var, values=stopbits, width=5)
@@ -119,15 +220,23 @@ class SerialGUI:
         self.connect_btn = ttk.Button(top_frame, text="Connect", command=self.toggle_connection)
         self.connect_btn.grid(row=0, column=11, padx=5)
         
-        # Options frame
-        options_frame = ttk.Frame(self.root, padding="5")
-        options_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        # Options frame with purple background
+        options_frame = tk.Frame(self.root, bg=self.COLORS['bg_options'], relief=tk.RAISED, bd=1)
+        options_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
         
-        # Checkboxes for options
-        ttk.Checkbutton(options_frame, text="Hex View", variable=self.hex_view_enabled).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(options_frame, text="Auto Scroll", variable=self.auto_scroll_enabled).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(options_frame, text="Log to File", variable=self.logging_enabled, 
-                       command=self.toggle_logging).pack(side=tk.LEFT, padx=5)
+        # Checkboxes for options with tooltips
+        hex_check = ttk.Checkbutton(options_frame, text="Hex View", variable=self.hex_view_enabled)
+        hex_check.pack(side=tk.LEFT, padx=5)
+        ToolTip(hex_check, "Display data in hexadecimal format (00-FF)\nUseful for viewing binary protocols")
+        
+        auto_check = ttk.Checkbutton(options_frame, text="Auto Scroll", variable=self.auto_scroll_enabled)
+        auto_check.pack(side=tk.LEFT, padx=5)
+        ToolTip(auto_check, "Automatically scroll to show newest data\nDisable to examine earlier messages")
+        
+        log_check = ttk.Checkbutton(options_frame, text="Log to File", variable=self.logging_enabled, 
+                                   command=self.toggle_logging)
+        log_check.pack(side=tk.LEFT, padx=5)
+        ToolTip(log_check, "Save all communication to a CSV file\nFile will be created in current directory")
         
         # Clear button
         ttk.Button(options_frame, text="Clear Display", command=self.clear_display).pack(side=tk.LEFT, padx=5)
@@ -136,14 +245,98 @@ class SerialGUI:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5, pady=5)
         
-        # Data display tab
-        data_tab = ttk.Frame(self.notebook)
-        self.notebook.add(data_tab, text="Data Display")
+        # Data display tab with blue theme
+        data_tab = ttk.Frame(self.notebook, style='Data.TFrame')
+        self.notebook.add(data_tab, text="📊 Data Display")
         
-        # Received data display
-        self.rx_display = scrolledtext.ScrolledText(data_tab, wrap=tk.WORD, width=80, height=20, font=("Courier", 14))
-        self.rx_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Add header label for Data Display tab
+        data_header = tk.Label(data_tab, text="📊 DATA DISPLAY - Real-time Serial Communication",
+                              bg=self.COLORS['tab_data'], fg='white',
+                              font=('Arial', 14, 'bold'), pady=10)
+        data_header.pack(fill=tk.X)
+        
+        # Received data display with light blue background - reduced height
+        self.rx_display = scrolledtext.ScrolledText(data_tab, wrap=tk.WORD, width=80, height=15, 
+                                                    font=("Courier", 14), bg='#ffffff', 
+                                                    relief=tk.SUNKEN, bd=2)
+        self.rx_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         self.rx_display.config(state=tk.DISABLED)
+        
+        # Command section for Data Display tab
+        data_cmd_frame = tk.Frame(data_tab, bg=self.COLORS['bg_transmit'], relief=tk.RAISED, bd=1)
+        data_cmd_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        
+        # Command entry
+        ttk.Label(data_cmd_frame, text="Command:").pack(side=tk.LEFT, padx=5)
+        self.command_entry = ttk.Entry(data_cmd_frame, width=50)
+        self.command_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.command_entry.bind("<Return>", lambda e: self.send_command())
+        self.command_entry.bind("<Up>", self.history_up)
+        self.command_entry.bind("<Down>", self.history_down)
+        
+        # Send button
+        self.send_btn = ttk.Button(data_cmd_frame, text="Send", command=self.send_command, state=tk.DISABLED)
+        self.send_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Line ending options
+        ttk.Label(data_cmd_frame, text="Line End:").pack(side=tk.LEFT, padx=5)
+        self.line_ending_var = tk.StringVar(value="\\r\\n")
+        line_endings = ["None", "\\r", "\\n", "\\r\\n"]
+        self.line_ending_combo = ttk.Combobox(data_cmd_frame, textvariable=self.line_ending_var, 
+                                             values=line_endings, width=8)
+        self.line_ending_combo.pack(side=tk.LEFT, padx=5)
+        
+        # Quick Commands section for Data Display tab
+        data_macro_frame = ttk.LabelFrame(data_tab, text="Quick Commands", padding="5")
+        data_macro_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
+        
+        # Create container for centered button alignment
+        data_button_container = tk.Frame(data_macro_frame, bg=self.COLORS['bg_macros'])
+        data_button_container.pack(fill=tk.X, padx=10, pady=5)
+        
+        # Configure equal spacing for buttons
+        for i in range(4):
+            data_button_container.grid_columnconfigure(i, weight=1)
+        
+        button_width = 10
+        macro_buttons = [
+            ("Reset", "RESET"),
+            ("Status", "STATUS"), 
+            ("Help", "HELP"),
+            ("Version", "VERSION")
+        ]
+        
+        for i, (text, command) in enumerate(macro_buttons):
+            btn = ttk.Button(data_button_container, text=text, width=button_width,
+                           command=lambda cmd=command: self.send_macro(cmd))
+            btn.grid(row=0, column=i, padx=5, sticky='ew')
+        
+        # Status bar section for Data Display tab
+        data_status_frame = tk.Frame(data_tab, bg='#424242', relief=tk.SUNKEN, bd=1)
+        data_status_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
+        
+        # Connection status indicator (colored circle)
+        self.status_indicator = tk.Label(data_status_frame, text="●", font=("Arial", 14),
+                                        bg='#424242', fg=self.COLORS['fg_disconnected'])
+        self.status_indicator.pack(side=tk.LEFT, padx=5)
+        
+        # Status text
+        self.status_bar = tk.Label(data_status_frame, text="Disconnected",
+                                  bg='#424242', fg='white', font=("Arial", 10, 'bold'))
+        self.status_bar.pack(side=tk.LEFT, padx=5)
+        
+        # Port info label (shows port and settings when connected)
+        self.port_info_label = tk.Label(data_status_frame, text="",
+                                       bg='#424242', fg='#90CAF9', font=("Arial", 10))
+        self.port_info_label.pack(side=tk.LEFT, padx=20)
+        
+        # Font size label and controls
+        tk.Label(data_status_frame, text="Font Size:", bg='#424242', fg='white',
+                font=("Arial", 10)).pack(side=tk.RIGHT, padx=5)
+        self.font_size_var = tk.IntVar(value=14)
+        font_spin = ttk.Spinbox(data_status_frame, from_=10, to=20, width=4,
+                               textvariable=self.font_size_var, command=self.update_font_size)
+        font_spin.pack(side=tk.RIGHT, padx=5)
         
         # Create tags for different message types
         self.rx_display.tag_config("rx", foreground="blue")
@@ -151,65 +344,96 @@ class SerialGUI:
         self.rx_display.tag_config("error", foreground="red")
         self.rx_display.tag_config("system", foreground="gray")
         
-        # Hex display tab
-        hex_tab = ttk.Frame(self.notebook)
-        self.notebook.add(hex_tab, text="Hex Display")
+        # Hex display tab with purple theme
+        hex_tab = ttk.Frame(self.notebook, style='Hex.TFrame')
+        self.notebook.add(hex_tab, text="🔢 Hex Display")
         
-        self.hex_display = scrolledtext.ScrolledText(hex_tab, wrap=tk.WORD, width=80, height=20, font=("Courier", 14))
-        self.hex_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Add header label for Hex Display tab
+        hex_header = tk.Label(hex_tab, text="🔢 HEX DISPLAY - Hexadecimal Data View",
+                             bg=self.COLORS['tab_hex'], fg='white',
+                             font=('Arial', 14, 'bold'), pady=10)
+        hex_header.pack(fill=tk.X)
+        
+        # Hex display with light purple background - reduced height
+        self.hex_display = scrolledtext.ScrolledText(hex_tab, wrap=tk.WORD, width=80, height=15, 
+                                                     font=("Courier", 14), bg='#ffffff',
+                                                     relief=tk.SUNKEN, bd=2)
+        self.hex_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         self.hex_display.config(state=tk.DISABLED)
         
-        # Host tab (Protocol Master)
-        host_tab = ttk.Frame(self.notebook)
-        self.notebook.add(host_tab, text="Host (Master)")
+        # Command section for Hex Display tab (reference to same controls)
+        hex_cmd_frame = tk.Frame(hex_tab, bg=self.COLORS['bg_transmit'], relief=tk.RAISED, bd=1)
+        hex_cmd_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        
+        ttk.Label(hex_cmd_frame, text="Commands available in Data Display tab", 
+                 font=("Arial", 10, "italic")).pack(pady=5)
+        
+        # Simple status indicator for Hex Display tab
+        hex_status_frame = tk.Frame(hex_tab, bg='#424242', relief=tk.SUNKEN, bd=1)
+        hex_status_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
+        
+        # Just show connection status in hex tab
+        tk.Label(hex_status_frame, text="Status:", bg='#424242', fg='white', 
+                font=("Arial", 10, 'bold')).pack(side=tk.LEFT, padx=5)
+        self.hex_status_label = tk.Label(hex_status_frame, text="Disconnected",
+                                        bg='#424242', fg=self.COLORS['fg_disconnected'], 
+                                        font=("Arial", 10))
+        self.hex_status_label.pack(side=tk.LEFT, padx=5)
+        
+        # Host tab (Protocol Master) with green theme
+        host_tab = ttk.Frame(self.notebook, style='Host.TFrame')
+        self.notebook.add(host_tab, text="📤 Host (Master)")
+        
+        # Add header label for Host tab
+        host_header = tk.Label(host_tab, text="📤 HOST MODE - Master Protocol Controller",
+                              bg=self.COLORS['tab_host'], fg='white',
+                              font=('Arial', 14, 'bold'), pady=10)
+        host_header.pack(fill=tk.X)
+        
         self.host_tab = HostTab(host_tab, lambda: self.serial_port, self.data_queue)
         
-        # Device tab (Protocol Slave)
-        device_tab = ttk.Frame(self.notebook)
-        self.notebook.add(device_tab, text="Device (Slave)")
+        # Device tab (Protocol Slave) with orange theme
+        device_tab = ttk.Frame(self.notebook, style='Device.TFrame')
+        self.notebook.add(device_tab, text="📥 Device (Slave)")
+        
+        # Add header label for Device tab
+        device_header = tk.Label(device_tab, text="📥 DEVICE MODE - Slave Protocol Simulator",
+                                bg=self.COLORS['tab_device'], fg='white',
+                                font=('Arial', 14, 'bold'), pady=10)
+        device_header.pack(fill=tk.X)
+        
         self.device_tab = DeviceTab(device_tab, lambda: self.serial_port, self.data_queue)
         
-        # Transmit controls frame
-        transmit_frame = ttk.Frame(self.root, padding="5")
-        transmit_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E))
         
-        # Command entry
-        ttk.Label(transmit_frame, text="Command:").pack(side=tk.LEFT, padx=5)
-        self.command_entry = ttk.Entry(transmit_frame, width=50)
-        self.command_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-        self.command_entry.bind("<Return>", lambda e: self.send_command())
-        self.command_entry.bind("<Up>", self.history_up)
-        self.command_entry.bind("<Down>", self.history_down)
         
-        # Send button
-        self.send_btn = ttk.Button(transmit_frame, text="Send", command=self.send_command, state=tk.DISABLED)
-        self.send_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Line ending options
-        ttk.Label(transmit_frame, text="Line End:").pack(side=tk.LEFT, padx=5)
-        self.line_ending_var = tk.StringVar(value="\\r\\n")
-        line_endings = ["None", "\\r", "\\n", "\\r\\n"]
-        self.line_ending_combo = ttk.Combobox(transmit_frame, textvariable=self.line_ending_var, 
-                                             values=line_endings, width=8)
-        self.line_ending_combo.pack(side=tk.LEFT, padx=5)
-        
-        # Macro buttons frame
-        macro_frame = ttk.LabelFrame(self.root, text="Quick Commands", padding="5")
-        macro_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
-        
-        # Add some example macro buttons
-        ttk.Button(macro_frame, text="Reset", command=lambda: self.send_macro("RESET")).pack(side=tk.LEFT, padx=2)
-        ttk.Button(macro_frame, text="Status", command=lambda: self.send_macro("STATUS")).pack(side=tk.LEFT, padx=2)
-        ttk.Button(macro_frame, text="Help", command=lambda: self.send_macro("HELP")).pack(side=tk.LEFT, padx=2)
-        ttk.Button(macro_frame, text="Version", command=lambda: self.send_macro("VERSION")).pack(side=tk.LEFT, padx=2)
-        
-        # Status bar
-        self.status_bar = ttk.Label(self.root, text="Disconnected", relief=tk.SUNKEN, anchor=tk.W)
-        self.status_bar.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E))
         
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(2, weight=1)
+    
+    def update_font_size(self):
+        """Update font size for all text displays"""
+        try:
+            new_size = self.font_size_var.get()
+            new_font = ("Courier", new_size)
+            
+            # Update main displays
+            self.rx_display.config(font=new_font)
+            self.hex_display.config(font=new_font)
+            
+            # Update tab displays if they exist
+            if hasattr(self, 'host_tab') and hasattr(self.host_tab, 'log_display'):
+                self.host_tab.log_display.config(font=new_font)
+                self.host_tab.preview_text.config(font=("Courier", max(10, new_size-2)))
+            
+            if hasattr(self, 'device_tab'):
+                if hasattr(self.device_tab, 'incoming_request_log'):
+                    self.device_tab.incoming_request_log.config(font=new_font)
+                if hasattr(self.device_tab, 'outgoing_response_log'):
+                    self.device_tab.outgoing_response_log.config(font=new_font)
+                    
+        except Exception as e:
+            print(f"Font update error: {e}")
     
     def refresh_ports(self):
         """Scan and refresh available serial ports.
@@ -248,8 +472,15 @@ class SerialGUI:
         if port_list:
             self.port_combo.current(0)
         
-        # Add status message
-        self.add_system_message(f"Found {len(port_list)} serial port(s)")
+        # Add detailed status message with port list
+        if port_list:
+            self.add_system_message(f"Found {len(port_list)} serial port(s):")
+            for i, port_desc in enumerate(port_list[:5], 1):  # Show first 5 ports
+                self.add_system_message(f"  {i}. {port_desc}")
+            if len(port_list) > 5:
+                self.add_system_message(f"  ... and {len(port_list) - 5} more")
+        else:
+            self.add_system_message("No serial ports found")
     
     def get_parity_constant(self, parity_str: str):
         """Convert parity string to serial constant"""
@@ -331,8 +562,9 @@ class SerialGUI:
             self.stopbits_combo.config(state=tk.DISABLED)
             self.refresh_btn.config(state=tk.DISABLED)
             
-            # Update status
+            # Update status in both Data Display and Hex Display tabs
             self.status_bar.config(text=f"Connected to {port} at {baud} baud")
+            self.hex_status_label.config(text="Connected", fg=self.COLORS['fg_connected'])
             self.add_system_message(f"Connected to {port}")
             
             # Start read thread
@@ -369,8 +601,11 @@ class SerialGUI:
         self.stopbits_combo.config(state=tk.NORMAL)
         self.refresh_btn.config(state=tk.NORMAL)
         
-        # Update status
+        # Update status with visual indicators
+        self.status_indicator.config(fg=self.COLORS['fg_disconnected'])
         self.status_bar.config(text="Disconnected")
+        self.hex_status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
+        self.port_info_label.config(text="")
         self.add_system_message("Disconnected")
     
     def read_serial_thread(self):
@@ -642,11 +877,15 @@ class SerialGUI:
             self.command_entry.delete(0, tk.END)
     
     def clear_display(self):
-        """Clear the display areas"""
+        """Clear data display area"""
         self.rx_display.config(state=tk.NORMAL)
         self.rx_display.delete(1.0, tk.END)
         self.rx_display.config(state=tk.DISABLED)
         
+        self.add_system_message("Data display cleared")
+    
+    def clear_hex_display(self):
+        """Clear hex display area"""
         self.hex_display.config(state=tk.NORMAL)
         self.hex_display.delete(1.0, tk.END)
         self.hex_display.config(state=tk.DISABLED)

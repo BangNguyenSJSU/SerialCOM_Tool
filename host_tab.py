@@ -24,6 +24,21 @@ class HostTab:
     communication.
     """
     
+    # Color scheme for better UI visualization
+    COLORS = {
+        'bg_main': '#f0f0f0',           # Light gray main background
+        'bg_address': '#e3f2fd',        # Light blue for address section
+        'bg_operation': '#f3e5f5',      # Light purple for operation section
+        'bg_params': '#e8f5e9',         # Light green for parameters
+        'bg_preview': '#fff3e0',        # Light amber for packet preview
+        'bg_log': '#ffffff',            # White for log display
+        'fg_send': '#4caf50',           # Green for send button
+        'fg_clear': '#f44336',          # Red for clear button
+        'fg_highlight': '#2196f3',      # Blue for highlights
+        'border_dark': '#9e9e9e',       # Dark gray for borders
+        'border_light': '#e0e0e0',      # Light gray for borders
+    }
+    
     def __init__(self, parent_frame: ttk.Frame, serial_port_getter, data_queue: queue.Queue):
         """
         Initialize Host Tab.
@@ -51,39 +66,70 @@ class HostTab:
         # Start processing loop
         self.process_responses()
     
+    def setup_styles(self):
+        """Configure ttk styles with custom colors"""
+        style = ttk.Style()
+        
+        # Configure button styles
+        style.configure('Send.TButton', foreground='green')
+        style.configure('Clear.TButton', foreground='red')
+        style.configure('Update.TButton', foreground='blue')
+    
     def create_widgets(self):
         """Create Host tab UI elements"""
-        # Main container with padding
-        main_frame = ttk.Frame(self.frame, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Configure styles
+        self.setup_styles()
         
-        # Device Address Section
-        addr_frame = ttk.LabelFrame(main_frame, text="Device Address", padding="5")
-        addr_frame.pack(fill=tk.X, pady=(0, 10))
+        # Main container with background
+        main_frame = tk.Frame(self.frame, bg=self.COLORS['bg_main'])
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        ttk.Label(addr_frame, text="Address (0-247):").pack(side=tk.LEFT, padx=5)
+        # Top section (full width) - Device Address and Register Operation
+        top_section = tk.Frame(main_frame, bg=self.COLORS['bg_main'])
+        top_section.pack(fill=tk.X, pady=(0, 10))
+        
+        # Device Address Section with blue background - using grid for better alignment
+        addr_frame = tk.LabelFrame(top_section, text="Device Address", 
+                                  bg=self.COLORS['bg_address'], 
+                                  fg='#01579b',
+                                  font=('Arial', 10, 'bold'),
+                                  relief=tk.RAISED, bd=2)
+        addr_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
+        
+        # Create inner frame for grid layout with consistent padding
+        addr_content = tk.Frame(addr_frame, bg=self.COLORS['bg_address'])
+        addr_content.pack(fill=tk.X, padx=10, pady=8)
+        
+        # Address field - aligned to grid
+        tk.Label(addr_content, text="Address (0-247):", bg=self.COLORS['bg_address'], 
+                width=15, anchor='e').grid(row=0, column=0, padx=(0, 10), sticky='e')
         self.device_addr_var = tk.IntVar(value=1)
-        self.device_addr_spin = ttk.Spinbox(
-            addr_frame, from_=0, to=247, textvariable=self.device_addr_var, width=10
-        )
-        self.device_addr_spin.pack(side=tk.LEFT, padx=5)
+        self.device_addr_spin = ttk.Spinbox(addr_content, from_=0, to=247, 
+                                           textvariable=self.device_addr_var, width=12)
+        self.device_addr_spin.grid(row=0, column=1, padx=(0, 10), sticky='w')
+        tk.Label(addr_content, text="(0 = Broadcast)", bg=self.COLORS['bg_address'], 
+                fg='#666666').grid(row=0, column=2, padx=(0, 20), sticky='w')
         
-        ttk.Label(addr_frame, text="(0 = Broadcast)").pack(side=tk.LEFT, padx=5)
-        
-        # Message ID Input
-        ttk.Label(addr_frame, text="Message ID:").pack(side=tk.LEFT, padx=(20, 5))
+        # Message ID field - aligned to same grid
+        tk.Label(addr_content, text="Message ID:", bg=self.COLORS['bg_address'],
+                width=15, anchor='e').grid(row=0, column=3, padx=(0, 10), sticky='e')
         self.msg_id_var = tk.StringVar(value=f"{self.message_id:02X}")
-        self.msg_id_entry = ttk.Entry(addr_frame, textvariable=self.msg_id_var, width=4, font=("Courier", 14))
-        self.msg_id_entry.pack(side=tk.LEFT, padx=5)
+        self.msg_id_entry = ttk.Entry(addr_content, textvariable=self.msg_id_var, 
+                                     width=12, font=("Courier", 12))
+        self.msg_id_entry.grid(row=0, column=4, padx=(0, 10), sticky='w')
         self.msg_id_var.trace('w', self.on_message_id_change)
+        tk.Label(addr_content, text="(00-FF hex)", bg=self.COLORS['bg_address'], 
+                fg='#666666').grid(row=0, column=5, sticky='w')
         
-        ttk.Label(addr_frame, text="(00-FF hex)").pack(side=tk.LEFT, padx=5)
+        # Operation Selection with purple background
+        op_frame = tk.LabelFrame(top_section, text="Register Operation", 
+                                bg=self.COLORS['bg_operation'],
+                                fg='#4a148c',
+                                font=('Arial', 10, 'bold'),
+                                relief=tk.RAISED, bd=2)
+        op_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
         
-        # Operation Selection
-        op_frame = ttk.LabelFrame(main_frame, text="Register Operation", padding="5")
-        op_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # Operation type radio buttons in a single row
+        # Operation type radio buttons with even spacing using grid
         self.operation_var = tk.StringVar(value="read_single")
         operations = [
             ("Read Single (0x01)", "read_single"),
@@ -92,81 +138,172 @@ class HostTab:
             ("Write Multiple (0x04)", "write_multiple")
         ]
         
-        op_row = ttk.Frame(op_frame)
-        op_row.pack(fill=tk.X, pady=2)
+        op_content = tk.Frame(op_frame, bg=self.COLORS['bg_operation'])
+        op_content.pack(fill=tk.X, padx=10, pady=8)
         
-        for text, value in operations:
-            ttk.Radiobutton(
-                op_row, text=text, variable=self.operation_var, value=value,
+        # Configure equal column weights for even spacing
+        for i in range(4):
+            op_content.columnconfigure(i, weight=1)
+        
+        for i, (text, value) in enumerate(operations):
+            radio = ttk.Radiobutton(
+                op_content, text=text, variable=self.operation_var, value=value,
                 command=self.on_operation_change
-            ).pack(side=tk.LEFT, padx=(0, 15))
+            )
+            radio.grid(row=0, column=i, padx=5, sticky='w')
         
-        # Parameters Frame
-        params_frame = ttk.LabelFrame(main_frame, text="Parameters", padding="5")
-        params_frame.pack(fill=tk.X, pady=(0, 10))
+        # Two-column layout section
+        columns_frame = tk.Frame(main_frame, bg=self.COLORS['bg_main'])
+        columns_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Register Address
-        addr_row = ttk.Frame(params_frame)
-        addr_row.pack(fill=tk.X, pady=2)
-        ttk.Label(addr_row, text="Register Address (hex):").pack(side=tk.LEFT, padx=5)
+        # Configure column weights: left 60%, right 40%
+        columns_frame.columnconfigure(0, weight=60)
+        columns_frame.columnconfigure(1, weight=40)
+        
+        # LEFT COLUMN (60% width)
+        left_column = tk.Frame(columns_frame, bg=self.COLORS['bg_main'])
+        left_column.grid(row=0, column=0, sticky='nsew', padx=(0, 10))
+        
+        # RIGHT COLUMN (40% width)
+        right_column = tk.Frame(columns_frame, bg=self.COLORS['bg_main'])
+        right_column.grid(row=0, column=1, sticky='nsew')
+        
+        # === LEFT COLUMN CONTENT ===
+        
+        # Parameters Frame with green background - using grid for alignment
+        params_frame = tk.LabelFrame(left_column, text="Parameters", 
+                                    bg=self.COLORS['bg_params'],
+                                    fg='#1b5e20',
+                                    font=('Arial', 10, 'bold'),
+                                    relief=tk.RAISED, bd=2)
+        params_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
+        
+        # Create grid container for parameter fields
+        params_content = tk.Frame(params_frame, bg=self.COLORS['bg_params'])
+        params_content.pack(fill=tk.X, padx=10, pady=8)
+        
+        # Configure column widths for consistent alignment
+        params_content.columnconfigure(1, weight=1)
+        
+        # Register Address - row 0
+        tk.Label(params_content, text="Register Address (hex):", bg=self.COLORS['bg_params'],
+                width=25, anchor='e').grid(row=0, column=0, padx=(0, 10), pady=3, sticky='e')
         self.reg_addr_var = tk.StringVar(value="0000")
-        self.reg_addr_entry = ttk.Entry(addr_row, textvariable=self.reg_addr_var, width=10)
-        self.reg_addr_entry.pack(side=tk.LEFT, padx=5)
+        self.reg_addr_entry = ttk.Entry(params_content, textvariable=self.reg_addr_var, width=15)
+        self.reg_addr_entry.grid(row=0, column=1, pady=3, sticky='w')
         
-        # Register Value (for write operations)
-        self.value_row = ttk.Frame(params_frame)
-        self.value_row.pack(fill=tk.X, pady=2)
-        ttk.Label(self.value_row, text="Register Value (hex):").pack(side=tk.LEFT, padx=5)
+        # Register Value (for write operations) - row 1
+        self.value_row = tk.Frame(params_content, bg=self.COLORS['bg_params'])
+        tk.Label(params_content, text="Register Value (hex):", bg=self.COLORS['bg_params'],
+                width=25, anchor='e').grid(row=1, column=0, padx=(0, 10), pady=3, sticky='e')
         self.reg_value_var = tk.StringVar(value="0000")
-        self.reg_value_entry = ttk.Entry(self.value_row, textvariable=self.reg_value_var, width=10)
-        self.reg_value_entry.pack(side=tk.LEFT, padx=5)
+        self.reg_value_entry = ttk.Entry(params_content, textvariable=self.reg_value_var, width=15)
+        self.reg_value_entry.grid(row=1, column=1, pady=3, sticky='w')
         
-        # Count (for multiple operations)
-        self.count_row = ttk.Frame(params_frame)
-        self.count_row.pack(fill=tk.X, pady=2)
-        ttk.Label(self.count_row, text="Count (1-255):").pack(side=tk.LEFT, padx=5)
+        # Count (for multiple operations) - row 2
+        self.count_row = tk.Frame(params_content, bg=self.COLORS['bg_params'])
+        tk.Label(params_content, text="Count (1-255):", bg=self.COLORS['bg_params'],
+                width=25, anchor='e').grid(row=2, column=0, padx=(0, 10), pady=3, sticky='e')
         self.count_var = tk.IntVar(value=1)
-        self.count_spin = ttk.Spinbox(self.count_row, from_=1, to=255, textvariable=self.count_var, width=10)
-        self.count_spin.pack(side=tk.LEFT, padx=5)
+        self.count_spin = ttk.Spinbox(params_content, from_=1, to=255, textvariable=self.count_var, width=15)
+        self.count_spin.grid(row=2, column=1, pady=3, sticky='w')
         
-        # Multiple values (for write multiple)
-        self.values_row = ttk.Frame(params_frame)
-        self.values_row.pack(fill=tk.X, pady=2)
-        ttk.Label(self.values_row, text="Values (hex, comma-separated):").pack(side=tk.LEFT, padx=5)
+        # Multiple values (for write multiple) - row 3
+        self.values_row = tk.Frame(params_content, bg=self.COLORS['bg_params'])
+        tk.Label(params_content, text="Values (comma-separated):", bg=self.COLORS['bg_params'],
+                width=30, anchor='e').grid(row=3, column=0, padx=(0, 10), pady=3, sticky='e')
         self.values_var = tk.StringVar(value="0000,0001,0002")
-        self.values_entry = ttk.Entry(self.values_row, textvariable=self.values_var, width=30)
-        self.values_entry.pack(side=tk.LEFT, padx=5)
+        self.values_entry = ttk.Entry(params_content, textvariable=self.values_var, width=50)
+        self.values_entry.grid(row=3, column=1, pady=3, sticky='w')
         
-        # Control Buttons
-        control_frame = ttk.Frame(main_frame)
-        control_frame.pack(fill=tk.X, pady=(0, 10))
+        # Control Buttons with timeout indicator - using grid for better alignment
+        control_frame = tk.Frame(left_column, bg=self.COLORS['bg_main'])
+        control_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
         
-        self.send_btn = ttk.Button(control_frame, text="Send Request", command=self.send_request)
-        self.send_btn.pack(side=tk.LEFT, padx=5)
+        # Create inner container with consistent padding
+        control_content = tk.Frame(control_frame, bg=self.COLORS['bg_main'])
+        control_content.pack(fill=tk.X, padx=10, pady=5)
         
-        ttk.Button(control_frame, text="Clear Log", command=self.clear_log).pack(side=tk.LEFT, padx=5)
+        # Standardized button width and height
+        button_width = 12
         
-        # Timeout setting
-        ttk.Label(control_frame, text="Timeout (ms):").pack(side=tk.LEFT, padx=(20, 5))
+        self.send_btn = ttk.Button(control_content, text="Send Request", command=self.send_request, 
+                                  style='Send.TButton', width=button_width)
+        self.send_btn.grid(row=0, column=0, padx=(0, 10), sticky='w')
+        
+        clear_btn = ttk.Button(control_content, text="Clear Log", command=self.clear_log, 
+                              style='Clear.TButton', width=button_width)
+        clear_btn.grid(row=0, column=1, padx=(0, 20), sticky='w')
+        
+        # Timeout setting - aligned with buttons
+        tk.Label(control_content, text="Timeout (ms):", bg=self.COLORS['bg_main'],
+                anchor='e', width=12).grid(row=0, column=2, padx=(0, 10), sticky='e')
         self.timeout_var = tk.IntVar(value=self.response_timeout)
-        timeout_spin = ttk.Spinbox(control_frame, from_=100, to=5000, textvariable=self.timeout_var, 
-                                   width=10, increment=100)
-        timeout_spin.pack(side=tk.LEFT, padx=5)
+        timeout_spin = ttk.Spinbox(control_content, from_=100, to=5000, textvariable=self.timeout_var, 
+                                   width=8, increment=100)
+        timeout_spin.grid(row=0, column=3, padx=(0, 10), sticky='w')
         self.timeout_var.trace('w', lambda *args: setattr(self, 'response_timeout', self.timeout_var.get()))
         
-        # Packet Preview
-        preview_frame = ttk.LabelFrame(main_frame, text="Packet Preview", padding="5")
-        preview_frame.pack(fill=tk.X, pady=(0, 10))
+        # Timeout indicator (shows countdown when waiting for response)
+        self.timeout_indicator = tk.Label(control_content, text="", bg=self.COLORS['bg_main'],
+                                         fg='orange', font=('Arial', 10, 'bold'), width=15)
+        self.timeout_indicator.grid(row=0, column=4, padx=10, sticky='w')
         
-        self.preview_text = tk.Text(preview_frame, height=3, width=80, font=("Courier", 14))
-        self.preview_text.pack(fill=tk.X)
+        # Packet Preview with amber background and parsed fields
+        preview_frame = tk.LabelFrame(left_column, text="Packet Preview & Inspection", 
+                                     bg=self.COLORS['bg_preview'],
+                                     fg='#e65100',
+                                     font=('Arial', 10, 'bold'),
+                                     relief=tk.RAISED, bd=2)
+        preview_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
         
-        # Communication Log
-        log_frame = ttk.LabelFrame(main_frame, text="Communication Log", padding="5")
-        log_frame.pack(fill=tk.BOTH, expand=True)
+        # Split preview into hex and parsed sections with proper alignment
+        preview_container = tk.Frame(preview_frame, bg=self.COLORS['bg_preview'])
+        preview_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
         
-        # Create log with scrollbar
-        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=15, font=("Courier", 14))
+        # Configure grid weights for proper stretching
+        preview_container.columnconfigure(1, weight=1)
+        
+        # Hex preview section - aligned labels
+        tk.Label(preview_container, text="Hex Bytes:", bg=self.COLORS['bg_preview'],
+                font=('Arial', 10, 'bold'), width=12, anchor='e').grid(row=0, column=0, 
+                padx=(0, 10), pady=3, sticky='e')
+        self.preview_text = tk.Text(preview_container, height=6, width=50, font=("Courier", 11),
+                                   relief=tk.SUNKEN, bd=1)
+        self.preview_text.grid(row=0, column=1, pady=3, sticky='ew')
+        
+        # Parsed fields section - aligned with hex section
+        tk.Label(preview_container, text="Parsed:", bg=self.COLORS['bg_preview'],
+                font=('Arial', 10, 'bold'), width=12, anchor='e').grid(row=1, column=0, 
+                padx=(0, 10), pady=3, sticky='e')
+        self.parsed_text = tk.Text(preview_container, height=8, width=50, font=("Courier", 10),
+                                  relief=tk.SUNKEN, bd=1)
+        self.parsed_text.grid(row=1, column=1, pady=3, sticky='ew')
+        
+        # Checksum status - aligned with parsed text start
+        self.checksum_label = tk.Label(preview_container, text="Checksum: Not calculated",
+                                      bg=self.COLORS['bg_preview'], font=('Arial', 10),
+                                      anchor='w')
+        self.checksum_label.grid(row=2, column=1, pady=5, sticky='w')
+        
+        # === RIGHT COLUMN CONTENT ===
+        
+        # Communication Log with white background - now in right column, full height
+        log_frame = tk.LabelFrame(right_column, text="Communication Log", 
+                                 bg=self.COLORS['bg_log'],
+                                 fg='#212121',
+                                 font=('Arial', 10, 'bold'),
+                                 relief=tk.GROOVE, bd=2)
+        log_frame.pack(fill=tk.BOTH, expand=True, padx=5)
+        
+        # Create log with consistent padding, larger for right column
+        log_container = tk.Frame(log_frame, bg=self.COLORS['bg_log'])
+        log_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        
+        # Larger log display to take advantage of right column space
+        self.log_display = scrolledtext.ScrolledText(log_container, wrap=tk.WORD, height=20, 
+                                                    width=40, font=("Courier", 11), 
+                                                    relief=tk.SUNKEN, bd=1)
         self.log_display.pack(fill=tk.BOTH, expand=True)
         
         # Configure tags for coloring
@@ -225,26 +362,68 @@ class HostTab:
         self.update_preview()
     
     def update_preview(self):
-        """Update packet preview based on current settings"""
+        """Update packet preview with hex bytes and parsed fields"""
         try:
             packet = self.build_packet()
             if packet:
                 packet_bytes = packet.to_bytes()
                 
-                # Format as hex
+                # Format hex bytes with spacing
                 hex_str = " ".join(f"{b:02X}" for b in packet_bytes)
                 
-                # Add ASCII representation
-                ascii_str = "".join(chr(b) if 32 <= b < 127 else "." for b in packet_bytes)
-                
-                # Update preview
+                # Update hex preview
                 self.preview_text.delete(1.0, tk.END)
-                self.preview_text.insert(tk.END, f"Hex: {hex_str}\n")
-                self.preview_text.insert(tk.END, f"ASCII: {ascii_str}\n")
-                self.preview_text.insert(tk.END, f"Length: {len(packet_bytes)} bytes")
+                self.preview_text.insert(tk.END, f"{hex_str}\nLength: {len(packet_bytes)} bytes")
+                
+                # Parse and display fields
+                parsed_info = self.parse_packet_fields(packet, packet_bytes)
+                self.parsed_text.delete(1.0, tk.END)
+                self.parsed_text.insert(tk.END, parsed_info)
+                
+                # Update checksum status
+                checksum = (packet_bytes[-2] << 8) | packet_bytes[-1] if len(packet_bytes) >= 2 else 0
+                self.checksum_label.config(text=f"Checksum: 0x{checksum:04X} (Fletcher-16)",
+                                         fg='green')
         except Exception as e:
             self.preview_text.delete(1.0, tk.END)
             self.preview_text.insert(tk.END, f"Error: {str(e)}")
+            self.parsed_text.delete(1.0, tk.END)
+            self.checksum_label.config(text="Checksum: Error", fg='red')
+    
+    def parse_packet_fields(self, packet, packet_bytes):
+        """Parse packet into human-readable fields"""
+        if len(packet_bytes) < 6:
+            return "Invalid packet (too short)"
+        
+        try:
+            start_flag = f"0x{packet_bytes[0]:02X}"
+            device_addr = packet_bytes[1]
+            message_id = f"0x{packet_bytes[2]:02X}"
+            length = packet_bytes[3]
+            func_code = f"0x{packet_bytes[4]:02X}"
+            
+            # Decode function
+            func_names = {
+                0x01: "Read Single",
+                0x02: "Write Single", 
+                0x03: "Read Multiple",
+                0x04: "Write Multiple"
+            }
+            func_name = func_names.get(packet_bytes[4], "Unknown")
+            
+            parsed = f"Start: {start_flag} | Addr: {device_addr} | ID: {message_id}\n"
+            parsed += f"Len: {length} | Func: {func_code} ({func_name})"
+            
+            # Add data field info if space allows
+            if length > 1 and len(packet_bytes) > 7:
+                data_bytes = packet_bytes[5:-2]  # Exclude checksum
+                if len(data_bytes) >= 2:
+                    reg_addr = (data_bytes[0] << 8) | data_bytes[1]
+                    parsed += f" | Reg: 0x{reg_addr:04X}"
+            
+            return parsed
+        except:
+            return "Parse error"
     
     def build_packet(self) -> Optional[Packet]:
         """Build packet based on current UI settings.

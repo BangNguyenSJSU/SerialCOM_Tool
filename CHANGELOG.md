@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2025-08-09 - Major UI Reorganization & Space Optimization
+
+### 🎨 Major UI/UX Improvements
+- **Tab-Specific Controls**: Moved all global UI elements (checkboxes, command bar, quick commands, status bar) into their respective tabs for better space utilization
+- **Enhanced Device Tab**: 
+  - Added packet counters to panel headers (Incoming Requests: X packets, Outgoing Responses: Y packets)
+  - Integrated auto-scroll toggles for each communication panel
+  - Added search functionality with real-time highlighting
+  - Reorganized Error Simulation into 3-column layout to fit all 5 options (No Error, Invalid Function, Invalid Address, Invalid Value, Internal Error)
+  - Enhanced Register Map with search, tooltips, and "Set Multiple" functionality
+  - Improved entry field width from 18 to 50 characters for comma-separated values
+- **Improved Host Tab**:
+  - Expanded Packet Preview & Inspection height (Raw: 2→6 lines, Parsed: 2→8 lines) to match Communication Log
+  - Enhanced parameter field labeling with better alignment
+  - Increased "Values (comma-separated)" field width from 25→30 label width and 40→50 entry width
+
+### 🔧 Layout Optimizations
+- **Self-Contained Tabs**: Each tab now contains all its relevant controls, eliminating floating elements in the main window
+- **Space Efficiency**: Reduced text display heights from 20 to 15 lines to accommodate integrated command bars
+- **Fixed Overlapping Issues**: Resolved status bar and quick commands overlapping by proper grid row assignments
+- **Better Visual Hierarchy**: Improved panel organization with consistent padding and alignment
+
+### 🐛 Bug Fixes
+- **IndentationError**: Fixed incorrect indentation in Device Tab error simulation code at line 829
+- **Label Truncation**: Fixed "Size" label being truncated to "Siz" by switching to grid layout with proper column configuration
+- **Error Simulation Clipping**: Resolved option clipping by reorganizing from single column to 3-column layout
+- **Command Section Disappearing**: Fixed overlapping row assignments in grid layout
+- **UI Element Positioning**: Moved command bar, quick commands, and status bar from root layout into appropriate tabs
+
+### 🔧 Technical Improvements
+- **Grid Layout Standardization**: Consistent use of grid layout for better alignment and spacing
+- **Entry Field Widths**: Optimized entry field sizes for better usability
+- **Panel Header Updates**: Dynamic counters that update in real-time
+- **Search Functionality**: Real-time search with case-insensitive matching and highlighting
+
 ## [2.1.1] - 2025-08-08 - Device Tab Font Size Enhancement
 
 ### 🎨 UI Improvements

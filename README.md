@@ -6,6 +6,20 @@
 
 A comprehensive cross-platform serial communication GUI application built with Python and Tkinter, featuring a custom register-based communication protocol for embedded systems testing and development.
 
+## 📸 Application Screenshots
+
+### Data Display Tab
+![Data Display Tab](image/DisplayData.png)
+*Real-time serial communication with hex/ASCII views, command history, and data logging*
+
+### Host (Master) Mode
+![Host Master Tab](image/Host%20(Master).png)
+*Send register read/write commands with packet preview and response monitoring*
+
+### Device (Slave) Mode
+![Device Slave Tab](image/Device%20(Slave).png)
+*Simulate devices with configurable register maps, error simulation, and communication logging*
+
 ## 🚀 Features
 
 ### Core Functionality
@@ -26,10 +40,12 @@ A comprehensive cross-platform serial communication GUI application built with P
 - 🔥 **Timeout handling** with configurable delays
 
 ### UI/UX Features
-- 🎨 **Optimized Layout** - Compact control panels with expanded communication logs
+- 🎨 **Optimized Layout** - Tab-specific controls moved inside tabs for better space utilization
 - 🎨 **Real-time Monitoring** - Separate panels for incoming requests and outgoing responses with 14pt font for better readability
-- 🎨 **Visual Feedback** - Register highlighting, statistics tracking, and error indication
-- 🎨 **Responsive Design** - Efficient space utilization with expandable sections
+- 🎨 **Visual Feedback** - Packet counters in panel headers, auto-scroll toggles, search functionality, register highlighting
+- 🎨 **Enhanced Device Tab** - Reorganized Error Simulation (3-column layout), register map with search and tooltips
+- 🎨 **Improved Host Tab** - Expanded Packet Preview section, optimized parameter fields with better labeling
+- 🎨 **Responsive Design** - Each tab is self-contained with all relevant controls integrated
 
 ## 📁 Project Structure
 
@@ -378,10 +394,14 @@ The application implements a custom frame-based protocol designed for reliable r
    - **Hex Display tab**: View data in hexadecimal format
    - Type commands in the input field and press Enter or click Send
 
+![Data Display Overview](image/DisplayData.png)
+
 ### Protocol Testing Mode
 
 #### Host (Master) Mode
 Use this mode to send register commands to a device:
+
+![Host Master Mode](image/Host%20(Master).png)
 
 1. **Switch to "Host (Master)" tab**
 2. **Configure device address** (1-247, or 0 for broadcast)
@@ -394,21 +414,23 @@ Use this mode to send register commands to a device:
    - Register address (hex format, e.g., "0010")
    - Values as needed for write operations
 5. **Click "Send Request"**
-6. **Monitor response** in the Communication Log
+6. **Monitor response** in the Communication Log with expanded Packet Preview section
 
 #### Device (Slave) Mode  
 Use this mode to simulate a device:
+
+![Device Slave Mode](image/Device%20(Slave).png)
 
 1. **Switch to "Device (Slave)" tab**
 2. **Configure device settings:**
    - Set device address (1-247) and register map size in the compact Device Configuration panel
    - Click "Test Pattern" to load sample data or "Clear" to reset registers
-3. **Set up error simulation:** Enable error simulation and select error type for testing
+3. **Set up error simulation:** Choose from 5 error types in the 3-column layout (No Error, Invalid Function, Invalid Address, Invalid Value, Internal Error)
 4. **Monitor communication:**
-   - **Incoming Requests**: View detailed logs of received protocol packets in the expanded left panel
-   - **Outgoing Responses**: Monitor sent responses and error messages in the expanded right panel
+   - **Incoming Requests**: View detailed logs with packet counters and auto-scroll toggle
+   - **Outgoing Responses**: Monitor sent responses with search functionality
    - **Statistics**: Track request/response/error counts with reset functionality
-5. **Edit registers:** Use the Register Map section to manually set individual register values
+5. **Edit registers:** Use the Register Map section with enhanced search, tooltips, and "Set Multiple" functionality (comma-separated values)
 
 ### Virtual Port Testing
 
