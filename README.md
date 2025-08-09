@@ -44,7 +44,8 @@ A comprehensive cross-platform serial communication GUI application built with P
 - 🎨 **Real-time Monitoring** - Separate panels for incoming requests and outgoing responses with 14pt font for better readability
 - 🎨 **Visual Feedback** - Packet counters in panel headers, auto-scroll toggles, search functionality, register highlighting
 - 🎨 **Enhanced Device Tab** - Reorganized Error Simulation (3-column layout), register map with search and tooltips
-- 🎨 **Improved Host Tab** - Expanded Packet Preview section, optimized parameter fields with better labeling
+- 🎨 **Improved Host Tab** - Expanded Packet Preview section with color-coded formatting, optimized parameter fields with better labeling
+- 🎨 **Color-Coded Packet Preview** - Syntax highlighting for hex bytes, labels, values, function codes, and addresses for better readability
 - 🎨 **Responsive Design** - Each tab is self-contained with all relevant controls integrated
 
 ## 📁 Project Structure
@@ -413,8 +414,12 @@ Use this mode to send register commands to a device:
 4. **Enter parameters:**
    - Register address (hex format, e.g., "0010")
    - Values as needed for write operations
-5. **Click "Send Request"**
-6. **Monitor response** in the Communication Log with expanded Packet Preview section
+5. **Preview packet** in the color-coded Packet Preview & Inspection section
+   - Hex bytes shown in blue bold
+   - Parsed fields with color-coded labels, values, and function codes
+   - Real-time updates as you modify parameters
+6. **Click "Send Request"**
+7. **Monitor response** in the Communication Log with expanded Packet Preview section
 
 #### Device (Slave) Mode  
 Use this mode to simulate a device:

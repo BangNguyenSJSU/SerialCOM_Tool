@@ -107,6 +107,7 @@ class HostTab:
         self.device_addr_spin = ttk.Spinbox(addr_content, from_=0, to=247, 
                                            textvariable=self.device_addr_var, width=12)
         self.device_addr_spin.grid(row=0, column=1, padx=(0, 10), sticky='w')
+        self.device_addr_var.trace('w', lambda *args: self.update_preview())
         tk.Label(addr_content, text="(0 = Broadcast)", bg=self.COLORS['bg_address'], 
                 fg='#666666').grid(row=0, column=2, padx=(0, 20), sticky='w')
         
@@ -191,30 +192,34 @@ class HostTab:
         self.reg_addr_var = tk.StringVar(value="0000")
         self.reg_addr_entry = ttk.Entry(params_content, textvariable=self.reg_addr_var, width=15)
         self.reg_addr_entry.grid(row=0, column=1, pady=3, sticky='w')
+        self.reg_addr_var.trace('w', lambda *args: self.update_preview())
         
         # Register Value (for write operations) - row 1
-        self.value_row = tk.Frame(params_content, bg=self.COLORS['bg_params'])
-        tk.Label(params_content, text="Register Value (hex):", bg=self.COLORS['bg_params'],
-                width=25, anchor='e').grid(row=1, column=0, padx=(0, 10), pady=3, sticky='e')
+        self.value_label = tk.Label(params_content, text="Register Value (hex):", bg=self.COLORS['bg_params'],
+                width=25, anchor='e')
+        self.value_label.grid(row=1, column=0, padx=(0, 10), pady=3, sticky='e')
         self.reg_value_var = tk.StringVar(value="0000")
         self.reg_value_entry = ttk.Entry(params_content, textvariable=self.reg_value_var, width=15)
         self.reg_value_entry.grid(row=1, column=1, pady=3, sticky='w')
+        self.reg_value_var.trace('w', lambda *args: self.update_preview())
         
         # Count (for multiple operations) - row 2
-        self.count_row = tk.Frame(params_content, bg=self.COLORS['bg_params'])
-        tk.Label(params_content, text="Count (1-255):", bg=self.COLORS['bg_params'],
-                width=25, anchor='e').grid(row=2, column=0, padx=(0, 10), pady=3, sticky='e')
+        self.count_label = tk.Label(params_content, text="Count (1-255):", bg=self.COLORS['bg_params'],
+                width=25, anchor='e')
+        self.count_label.grid(row=2, column=0, padx=(0, 10), pady=3, sticky='e')
         self.count_var = tk.IntVar(value=1)
         self.count_spin = ttk.Spinbox(params_content, from_=1, to=255, textvariable=self.count_var, width=15)
         self.count_spin.grid(row=2, column=1, pady=3, sticky='w')
+        self.count_var.trace('w', lambda *args: self.update_preview())
         
         # Multiple values (for write multiple) - row 3
-        self.values_row = tk.Frame(params_content, bg=self.COLORS['bg_params'])
-        tk.Label(params_content, text="Values (comma-separated):", bg=self.COLORS['bg_params'],
-                width=30, anchor='e').grid(row=3, column=0, padx=(0, 10), pady=3, sticky='e')
+        self.values_label = tk.Label(params_content, text="Values (comma-separated):", bg=self.COLORS['bg_params'],
+                width=30, anchor='e')
+        self.values_label.grid(row=3, column=0, padx=(0, 10), pady=3, sticky='e')
         self.values_var = tk.StringVar(value="0000,0001,0002")
         self.values_entry = ttk.Entry(params_content, textvariable=self.values_var, width=50)
         self.values_entry.grid(row=3, column=1, pady=3, sticky='w')
+        self.values_var.trace('w', lambda *args: self.update_preview())
         
         # Control Buttons with timeout indicator - using grid for better alignment
         control_frame = tk.Frame(left_column, bg=self.COLORS['bg_main'])
@@ -272,6 +277,12 @@ class HostTab:
                                    relief=tk.SUNKEN, bd=1)
         self.preview_text.grid(row=0, column=1, pady=3, sticky='ew')
         
+        # Configure color tags for preview_text
+        self.preview_text.tag_config("hex_data", foreground="#0066CC", font=("Courier", 11, "bold"))
+        self.preview_text.tag_config("label", foreground="#666666", font=("Courier", 11))
+        self.preview_text.tag_config("value", foreground="#009900", font=("Courier", 11, "bold"))
+        self.preview_text.tag_config("error", foreground="#CC0000", font=("Courier", 11, "bold"))
+        
         # Parsed fields section - aligned with hex section
         tk.Label(preview_container, text="Parsed:", bg=self.COLORS['bg_preview'],
                 font=('Arial', 10, 'bold'), width=12, anchor='e').grid(row=1, column=0, 
@@ -279,6 +290,14 @@ class HostTab:
         self.parsed_text = tk.Text(preview_container, height=8, width=50, font=("Courier", 10),
                                   relief=tk.SUNKEN, bd=1)
         self.parsed_text.grid(row=1, column=1, pady=3, sticky='ew')
+        
+        # Configure color tags for parsed_text
+        self.parsed_text.tag_config("field_label", foreground="#666666", font=("Courier", 10))
+        self.parsed_text.tag_config("field_value", foreground="#0066CC", font=("Courier", 10, "bold"))
+        self.parsed_text.tag_config("func_code", foreground="#9900CC", font=("Courier", 10, "bold"))
+        self.parsed_text.tag_config("address", foreground="#FF6600", font=("Courier", 10, "bold"))
+        self.parsed_text.tag_config("separator", foreground="#999999", font=("Courier", 10))
+        self.parsed_text.tag_config("error", foreground="#CC0000", font=("Courier", 10, "bold"))
         
         # Checksum status - aligned with parsed text start
         self.checksum_label = tk.Label(preview_container, text="Checksum: Not calculated",
@@ -313,7 +332,7 @@ class HostTab:
         self.log_display.tag_config("timeout", foreground="orange")
         self.log_display.tag_config("system", foreground="gray")
         
-        # Initially hide unused fields
+        # Initially hide unused fields and update preview
         self.on_operation_change()
     
     def on_message_id_change(self, *args):
@@ -344,19 +363,42 @@ class HostTab:
         """Handle operation type change"""
         operation = self.operation_var.get()
         
-        # Hide all optional fields first
-        self.value_row.pack_forget()
-        self.count_row.pack_forget()
-        self.values_row.pack_forget()
-        
-        # Show relevant fields
+        # Show/hide relevant fields based on operation
         if operation == "write_single":
-            self.value_row.pack(fill=tk.X, pady=2, after=self.reg_addr_entry.master)
+            # Show only register value field
+            self.value_label.grid(row=1, column=0, padx=(0, 10), pady=3, sticky='e')
+            self.reg_value_entry.grid(row=1, column=1, pady=3, sticky='w')
+            # Hide count and values fields
+            self.count_label.grid_remove()
+            self.count_spin.grid_remove()
+            self.values_label.grid_remove()
+            self.values_entry.grid_remove()
         elif operation == "read_multiple":
-            self.count_row.pack(fill=tk.X, pady=2, after=self.reg_addr_entry.master)
+            # Show only count field
+            self.count_label.grid(row=2, column=0, padx=(0, 10), pady=3, sticky='e')
+            self.count_spin.grid(row=2, column=1, pady=3, sticky='w')
+            # Hide value and values fields
+            self.value_label.grid_remove()
+            self.reg_value_entry.grid_remove()
+            self.values_label.grid_remove()
+            self.values_entry.grid_remove()
         elif operation == "write_multiple":
-            self.count_row.pack(fill=tk.X, pady=2, after=self.reg_addr_entry.master)
-            self.values_row.pack(fill=tk.X, pady=2, after=self.count_row)
+            # Show count and values fields
+            self.count_label.grid(row=2, column=0, padx=(0, 10), pady=3, sticky='e')
+            self.count_spin.grid(row=2, column=1, pady=3, sticky='w')
+            self.values_label.grid(row=3, column=0, padx=(0, 10), pady=3, sticky='e')
+            self.values_entry.grid(row=3, column=1, pady=3, sticky='w')
+            # Hide single value field
+            self.value_label.grid_remove()
+            self.reg_value_entry.grid_remove()
+        else:  # read_single
+            # Hide all optional fields
+            self.value_label.grid_remove()
+            self.reg_value_entry.grid_remove()
+            self.count_label.grid_remove()
+            self.count_spin.grid_remove()
+            self.values_label.grid_remove()
+            self.values_entry.grid_remove()
         
         # Update preview
         self.update_preview()
@@ -364,29 +406,49 @@ class HostTab:
     def update_preview(self):
         """Update packet preview with hex bytes and parsed fields"""
         try:
-            packet = self.build_packet()
+            packet = self.build_packet(show_errors=False)
             if packet:
                 packet_bytes = packet.to_bytes()
                 
                 # Format hex bytes with spacing
                 hex_str = " ".join(f"{b:02X}" for b in packet_bytes)
                 
-                # Update hex preview
+                # Update hex preview with color coding
                 self.preview_text.delete(1.0, tk.END)
-                self.preview_text.insert(tk.END, f"{hex_str}\nLength: {len(packet_bytes)} bytes")
+                self.preview_text.insert(tk.END, hex_str, "hex_data")
+                self.preview_text.insert(tk.END, "\n")
+                self.preview_text.insert(tk.END, "Length: ", "label")
+                self.preview_text.insert(tk.END, f"{len(packet_bytes)} bytes", "value")
                 
-                # Parse and display fields
-                parsed_info = self.parse_packet_fields(packet, packet_bytes)
-                self.parsed_text.delete(1.0, tk.END)
-                self.parsed_text.insert(tk.END, parsed_info)
+                # Parse and display fields with color coding
+                self.parse_packet_fields_with_colors(packet, packet_bytes)
                 
                 # Update checksum status
                 checksum = (packet_bytes[-2] << 8) | packet_bytes[-1] if len(packet_bytes) >= 2 else 0
                 self.checksum_label.config(text=f"Checksum: 0x{checksum:04X} (Fletcher-16)",
                                          fg='green')
+            else:
+                # Show informative message when packet can't be built
+                self.preview_text.delete(1.0, tk.END)
+                operation = self.operation_var.get()
+                if operation == "write_multiple":
+                    count = self.count_var.get()
+                    values_str = self.values_var.get().strip()
+                    num_values = len(values_str.split(',')) if values_str else 0
+                    if num_values != count:
+                        self.preview_text.insert(tk.END, "Count mismatch: ", "error")
+                        self.preview_text.insert(tk.END, f"Count={count}, Values={num_values}", "label")
+                    else:
+                        self.preview_text.insert(tk.END, "Invalid input format", "error")
+                else:
+                    self.preview_text.insert(tk.END, "Invalid input format", "error")
+                self.parsed_text.delete(1.0, tk.END)
+                self.parsed_text.insert(tk.END, "Waiting for valid input...", "label")
+                self.checksum_label.config(text="Checksum: N/A", fg='gray')
         except Exception as e:
             self.preview_text.delete(1.0, tk.END)
-            self.preview_text.insert(tk.END, f"Error: {str(e)}")
+            self.preview_text.insert(tk.END, "Error: ", "error")
+            self.preview_text.insert(tk.END, str(e), "error")
             self.parsed_text.delete(1.0, tk.END)
             self.checksum_label.config(text="Checksum: Error", fg='red')
     
@@ -425,11 +487,73 @@ class HostTab:
         except:
             return "Parse error"
     
-    def build_packet(self) -> Optional[Packet]:
+    def parse_packet_fields_with_colors(self, packet, packet_bytes):
+        """Parse packet and display with color-coded fields"""
+        self.parsed_text.delete(1.0, tk.END)
+        
+        if len(packet_bytes) < 6:
+            self.parsed_text.insert(tk.END, "Invalid packet (too short)", "error")
+            return
+        
+        try:
+            start_flag = f"0x{packet_bytes[0]:02X}"
+            device_addr = packet_bytes[1]
+            message_id = f"0x{packet_bytes[2]:02X}"
+            length = packet_bytes[3]
+            func_code = f"0x{packet_bytes[4]:02X}"
+            
+            # Decode function
+            func_names = {
+                0x01: "Read Single",
+                0x02: "Write Single", 
+                0x03: "Read Multiple",
+                0x04: "Write Multiple"
+            }
+            func_name = func_names.get(packet_bytes[4], "Unknown")
+            
+            # First line with colored fields
+            self.parsed_text.insert(tk.END, "Start: ", "field_label")
+            self.parsed_text.insert(tk.END, start_flag, "field_value")
+            self.parsed_text.insert(tk.END, " | ", "separator")
+            self.parsed_text.insert(tk.END, "Addr: ", "field_label")
+            self.parsed_text.insert(tk.END, str(device_addr), "address")
+            self.parsed_text.insert(tk.END, " | ", "separator")
+            self.parsed_text.insert(tk.END, "ID: ", "field_label")
+            self.parsed_text.insert(tk.END, message_id, "field_value")
+            self.parsed_text.insert(tk.END, "\n")
+            
+            # Second line with function details
+            self.parsed_text.insert(tk.END, "Len: ", "field_label")
+            self.parsed_text.insert(tk.END, str(length), "field_value")
+            self.parsed_text.insert(tk.END, " | ", "separator")
+            self.parsed_text.insert(tk.END, "Func: ", "field_label")
+            self.parsed_text.insert(tk.END, func_code, "func_code")
+            self.parsed_text.insert(tk.END, " (", "separator")
+            self.parsed_text.insert(tk.END, func_name, "func_code")
+            self.parsed_text.insert(tk.END, ")", "separator")
+            
+            # Add data field info if space allows
+            if length > 1 and len(packet_bytes) > 7:
+                data_bytes = packet_bytes[5:-2]  # Exclude checksum
+                if len(data_bytes) >= 2:
+                    reg_addr = (data_bytes[0] << 8) | data_bytes[1]
+                    self.parsed_text.insert(tk.END, " | ", "separator")
+                    self.parsed_text.insert(tk.END, "Reg: ", "field_label")
+                    self.parsed_text.insert(tk.END, f"0x{reg_addr:04X}", "address")
+            
+        except Exception as e:
+            self.parsed_text.delete(1.0, tk.END)
+            self.parsed_text.insert(tk.END, "Parse error: ", "error")
+            self.parsed_text.insert(tk.END, str(e), "error")
+    
+    def build_packet(self, show_errors=True) -> Optional[Packet]:
         """Build packet based on current UI settings.
         
         Reads the current UI configuration and creates the appropriate
         packet for the selected operation type.
+        
+        Args:
+            show_errors: If True, show error dialogs. If False, return None silently.
         
         Returns:
             Configured packet ready for transmission, or None if invalid
@@ -462,16 +586,19 @@ class HostTab:
                 
                 # Check count matches
                 if len(values) != count:
-                    messagebox.showerror("Error", f"Count ({count}) doesn't match number of values ({len(values)})")
+                    if show_errors:
+                        messagebox.showerror("Error", f"Count ({count}) doesn't match number of values ({len(values)})")
                     return None
                 
                 return PacketBuilder.write_multiple_request(device_addr, self.message_id, reg_addr, values)
                 
         except ValueError as e:
-            messagebox.showerror("Error", f"Invalid input: {str(e)}")
+            if show_errors:
+                messagebox.showerror("Error", f"Invalid input: {str(e)}")
             return None
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to build packet: {str(e)}")
+            if show_errors:
+                messagebox.showerror("Error", f"Failed to build packet: {str(e)}")
             return None
     
     def send_request(self):

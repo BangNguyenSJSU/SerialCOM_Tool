@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2025-08-09 - Enhanced Packet Preview with Color-Coded Formatting
+
+### 🎨 UI/UX Improvements
+- **Color-Coded Packet Preview**: Added syntax highlighting to the Packet Preview & Inspection section in Host (Master) tab
+  - Hex bytes displayed in blue bold (#0066CC) for better visibility
+  - Field labels in gray (#666666) for clear distinction
+  - Field values in green bold (#009900) for emphasis
+  - Function codes in purple bold (#9900CC) for easy identification
+  - Address fields in orange bold (#FF6600) for quick reference
+  - Error messages in red bold (#CC0000) for immediate attention
+  - Separators in light gray (#999999) for visual organization
+- **Dynamic Preview Updates**: Real-time color-coded updates as parameters change
+- **Improved Error Handling**: Preview shows informative messages instead of error dialogs
+  - Count mismatch warnings for Write Multiple operations
+  - "Waiting for valid input..." status when packet can't be built
+  - Non-intrusive error display during live editing
+
+### 🔧 Technical Improvements
+- **Text Widget Tag Configuration**: Added comprehensive color tags for both preview_text and parsed_text widgets
+- **Smart Error Suppression**: Added show_errors parameter to build_packet() method to prevent dialog spam during preview updates
+- **Event-Driven Updates**: Added trace handlers for all input fields to trigger immediate preview updates
+- **Grid Layout Fix**: Resolved widget visibility issues by switching from pack to grid-based show/hide logic
+
+### 🐛 Bug Fixes
+- **Fixed Error Dialog Spam**: Prevented error dialogs from appearing during live preview updates
+- **Fixed Widget Layout Issues**: Resolved "can't pack inside" errors when switching operation types
+- **Fixed Count Mismatch Handling**: Gracefully handles count/value mismatches in Write Multiple operations
+
 ## [3.0.0] - 2025-08-09 - Major UI Reorganization & Space Optimization
 
 ### 🎨 Major UI/UX Improvements
