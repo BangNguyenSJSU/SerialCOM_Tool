@@ -1,81 +1,349 @@
-# PySerial GUI Communication Tool
+# SerialCOM Tool - Professional Serial & Network Communication Suite
 
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-A comprehensive cross-platform serial communication GUI application built with Python and Tkinter, featuring a custom register-based communication protocol for embedded systems testing and development.
+A comprehensive cross-platform communication tool for serial and network protocols, featuring advanced debugging capabilities for embedded systems development and testing.
 
-## 📸 Application Screenshots
+## Table of Contents
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Screenshots](#screenshots)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Communication Protocols](#communication-protocols)
+  - [Serial Communication](#serial-communication)
+  - [Custom Protocol](#custom-protocol)
+  - [Modbus TCP](#modbus-tcp)
+- [Usage Guide](#usage-guide)
+- [Testing](#testing)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+
+## Overview
+
+SerialCOM Tool is a professional-grade communication suite designed for engineers and developers working with embedded systems, industrial automation, and IoT devices. It provides a unified interface for multiple communication protocols with real-time monitoring, data logging, and protocol analysis capabilities.
+
+## Key Features
+
+### Core Capabilities
+- **Multi-Protocol Support**: Serial, Custom Register-based Protocol, Modbus TCP
+- **Cross-Platform**: Native support for Windows, macOS, and Linux
+- **Real-Time Monitoring**: Live data visualization with hex/ASCII views
+- **Non-Blocking I/O**: Responsive GUI during all operations
+- **Data Logging**: Timestamped CSV export for analysis
+- **Protocol Analysis**: Packet inspection, checksum verification, error detection
+
+### Communication Features
+- **Serial Communication**: Full RS-232/485 support with hardware flow control
+- **Master/Slave Modes**: Act as either host (master) or device (slave)
+- **Modbus TCP**: Server and client implementation with 16-bit register support
+- **Error Simulation**: Test error handling and edge cases
+- **Broadcast Support**: One-to-many communication capability
+- **Timeout Management**: Configurable timeouts with automatic retry
+
+### User Interface
+- **Tabbed Interface**: Organized workspace for different protocols
+- **Color-Coded Display**: Visual differentiation of data types and packet components
+- **Search Functionality**: Quick data location in logs and registers
+- **Command History**: Arrow-key navigation through previous commands
+- **Auto-Scroll Control**: Manageable real-time data streams
+- **Responsive Design**: Optimized layout for various screen sizes
+
+## Screenshots
 
 ### Data Display Tab
 ![Data Display Tab](image/DisplayData.png)
-*Real-time serial communication with hex/ASCII views, command history, and data logging*
+*Real-time serial communication with hex/ASCII views and command history*
 
 ### Host (Master) Mode
 ![Host Master Tab](image/Host%20(Master).png)
-*Send register read/write commands with packet preview and response monitoring*
+*Send register commands with packet preview and response monitoring*
 
 ### Device (Slave) Mode
 ![Device Slave Tab](image/Device%20(Slave).png)
-*Simulate devices with configurable register maps, error simulation, and communication logging*
+*Simulate devices with configurable register maps and error simulation*
 
-## 🚀 Features
+### Modbus TCP Slave
+![Modbus TCP Slave Tab](image/Modbus%20TCP%20Slave.png)
+*TCP server for Modbus communication with register management*
 
-### Core Functionality
-- ✅ **Cross-platform serial communication** (Windows, macOS, Linux)
-- ✅ **Non-blocking I/O** - GUI remains responsive during operations
-- ✅ **Real-time data display** with auto-scrolling
-- ✅ **Hex and ASCII views** for data analysis
-- ✅ **Command history** with Up/Down arrow navigation
-- ✅ **Data logging** to timestamped CSV files
-- ✅ **Quick command macros** for frequently used commands
+### Modbus TCP Master
+![Modbus TCP Master Tab](image/Modbus%20TCP%20Master.png)
+*TCP client for sending Modbus requests with real-time packet preview*
 
-### Advanced Protocol Support
-- 🔥 **Host (Master) Mode** - Send register read/write commands
-- 🔥 **Device (Slave) Mode** - Simulate device with configurable register map
-- 🔥 **Fletcher-16 checksum** verification for data integrity
-- 🔥 **Error simulation** for robust testing
-- 🔥 **Broadcast messaging** support
-- 🔥 **Timeout handling** with configurable delays
+## Installation
 
-### UI/UX Features
-- 🎨 **Optimized Layout** - Tab-specific controls moved inside tabs for better space utilization
-- 🎨 **Real-time Monitoring** - Separate panels for incoming requests and outgoing responses with 14pt font for better readability
-- 🎨 **Visual Feedback** - Packet counters in panel headers, auto-scroll toggles, search functionality, register highlighting
-- 🎨 **Enhanced Device Tab** - Reorganized Error Simulation (3-column layout), register map with search and tooltips
-- 🎨 **Improved Host Tab** - Expanded Packet Preview section with color-coded formatting, optimized parameter fields with better labeling
-- 🎨 **Color-Coded Packet Preview** - Syntax highlighting for hex bytes, labels, values, function codes, and addresses for better readability
-- 🎨 **Responsive Design** - Each tab is self-contained with all relevant controls integrated
+### Prerequisites
+- Python 3.7 or higher
+- tkinter (usually included with Python)
+- pyserial library
 
-## 📁 Project Structure
+### Setup Instructions
 
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd SerialCOM_Tool
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the application**
+   ```bash
+   python serial_gui.py
+   ```
+
+### Platform-Specific Requirements
+
+**Linux**
+```bash
+# Add user to dialout group for serial port access
+sudo usermod -a -G dialout $USER
+# Install tkinter if needed
+sudo apt-get install python3-tk
+# Install socat for virtual ports (optional)
+sudo apt-get install socat
 ```
-PySerial_GUI_Project/
-├── README.md                   # Project documentation (this file)
-├── dev_note.md                # Development notes and implementation details
-├── requirements.txt           # Python dependencies
-├── serial_gui.py             # Main application entry point
-├── protocol.py               # Communication protocol implementation
-├── host_tab.py              # Host/Master mode implementation
-├── device_tab.py            # Device/Slave mode implementation
-├── test_protocol.py         # Protocol testing and validation
-├── test_port_detection.py   # Serial port detection testing
-├── create_ports.sh          # Virtual port creation script (macOS/Linux)
-└── start_virtual_ports.sh   # Legacy virtual port script
+
+**macOS**
+```bash
+# Install socat for virtual ports (optional)
+brew install socat
 ```
 
-### File Descriptions
+**Windows**
+- No additional setup required
+- For virtual ports, install com0com or similar
 
-| File | Purpose | Key Components |
-|------|---------|----------------|
-| `serial_gui.py` | Main GUI application | SerialGUI class, port detection, UI management |
-| `protocol.py` | Protocol implementation | Packet encoding/decoding, Fletcher-16, RegisterMap |
-| `host_tab.py` | Master mode interface | Command sending, response handling, timeout management |
-| `device_tab.py` | Slave mode simulator | Register map, request processing, error simulation |
-| `test_protocol.py` | Testing suite | Automated protocol verification and examples |
+## Quick Start
 
-## 🔄 Application Architecture & Data Flow
+### Basic Serial Communication
+
+1. **Connect to a device**
+   - Select port from dropdown
+   - Choose baud rate (default: 9600)
+   - Configure data bits, parity, stop bits
+   - Click "Connect"
+
+2. **Send and receive data**
+   - Type commands in input field
+   - Press Enter or click Send
+   - View responses in real-time
+
+### Protocol Testing
+
+1. **As Master (Host)**
+   - Switch to "Host (Master)" tab
+   - Set device address (1-247)
+   - Select operation (Read/Write)
+   - Enter register address and values
+   - Send request and monitor response
+
+2. **As Slave (Device)**
+   - Switch to "Device (Slave)" tab
+   - Configure device address
+   - Load test pattern or set registers
+   - Monitor incoming requests
+   - View automatic responses
+
+## Communication Protocols
+
+### Serial Communication
+
+Standard RS-232/485 serial communication with:
+- Baud rates: 300 to 921600
+- Data bits: 5, 6, 7, 8
+- Parity: None, Even, Odd, Mark, Space
+- Stop bits: 1, 1.5, 2
+- Flow control: None, RTS/CTS, XON/XOFF
+
+### Custom Protocol
+
+Frame-based protocol for register operations:
+
+#### Packet Structure
+```
+[Start Flag][Device Addr][Message ID][Length][Data][Checksum]
+   0x7E        1 byte      1 byte    1 byte   N     2 bytes
+```
+
+#### Function Codes
+| Code | Function | Description |
+|------|----------|-------------|
+| 0x01 | Read Single | Read one 16-bit register |
+| 0x02 | Write Single | Write one 16-bit register |
+| 0x03 | Read Multiple | Read up to 255 registers |
+| 0x04 | Write Multiple | Write up to 127 registers |
+
+#### Error Codes
+| Code | Description |
+|------|-------------|
+| 0x01 | Invalid function |
+| 0x02 | Invalid address |
+| 0x03 | Invalid value |
+| 0xFF | Internal error |
+
+### Modbus TCP
+
+#### Overview
+Industry-standard Modbus TCP/IP implementation focusing on holding register operations.
+
+#### Supported Functions
+- **Function 0x03**: Read Holding Registers
+- **Function 0x10**: Write Multiple Registers
+
+#### Frame Format
+```
+[Transaction ID][Protocol ID][Length][Unit ID][Function][Data]
+    2 bytes        2 bytes    2 bytes  1 byte   1 byte    N
+```
+
+#### Slave Configuration
+1. Navigate to "Modbus TCP Slave" tab
+2. Set IP address and port (default: 127.0.0.1:502)
+3. Configure Unit ID (1-247)
+4. Click "Start Server"
+5. Manage registers:
+   - Set individual values
+   - Load test patterns
+   - Export to CSV
+
+#### Master Configuration
+1. Navigate to "Modbus TCP Master" tab
+2. Enter server IP and port
+3. Set Unit ID
+4. Click "Connect"
+5. Send requests:
+   - Read: Specify address and count
+   - Write: Provide address and hex values
+
+#### Testing Example
+```python
+# Master: Read 10 registers starting at address 0
+Address: 0000
+Count: 10
+
+# Master: Write 3 registers starting at address 16
+Address: 0010
+Values: AAAA,BBBB,CCCC
+```
+
+## Usage Guide
+
+### Virtual Port Testing
+
+Create virtual serial port pairs for testing without hardware:
+
+**Linux/macOS**
+```bash
+# Create virtual ports
+./create_ports.sh
+
+# Terminal 1: Run as Device
+python serial_gui.py
+# Connect to /dev/ttys006
+
+# Terminal 2: Run as Host
+python serial_gui.py
+# Connect to /dev/ttys007
+```
+
+**Windows**
+Use com0com to create virtual COM port pairs (e.g., COM10 ↔ COM11)
+
+### Data Logging
+
+1. Enable logging in Data Display tab
+2. Logs saved to `logs/` directory
+3. Format: `serial_log_YYYYMMDD_HHMMSS.csv`
+4. Includes timestamps, direction, and data
+
+### Register Management
+
+**Setting Registers**
+- Single: Enter address and value, click "Set"
+- Multiple: Use comma-separated values
+- Pattern: Click "Load Test Pattern"
+- Clear: Click "Clear All"
+
+**Exporting Data**
+- Click "Export CSV" in Device tab
+- Saves current register map
+- Includes address and value columns
+
+## Testing
+
+### Unit Tests
+
+**Protocol Testing**
+```bash
+python test_protocol.py
+```
+Validates:
+- Checksum calculation
+- Packet encoding/decoding
+- Register operations
+- Error responses
+
+**Modbus TCP Testing**
+```bash
+python test_modbus_tcp.py
+```
+Validates:
+- Frame construction
+- Function code handling
+- Exception responses
+- Protocol compliance
+
+**Port Detection**
+```bash
+python test_port_detection.py
+```
+
+### Manual Testing Scenarios
+
+1. **Basic Communication**
+   - Send ASCII text
+   - Send hex values
+   - Verify echo response
+
+2. **Protocol Operations**
+   - Read single register
+   - Write multiple registers
+   - Test broadcast mode
+   - Simulate errors
+
+3. **Modbus TCP**
+   - Read holding registers
+   - Write multiple registers
+   - Test timeout handling
+   - Verify exception codes
+
+## Architecture
+
+### Project Structure
+```
+SerialCOM_Tool/
+├── README.md                  # Documentation
+├── requirements.txt           # Dependencies
+├── serial_gui.py             # Main application
+├── protocol.py               # Custom protocol
+├── host_tab.py               # Master mode
+├── device_tab.py             # Slave mode
+├── modbus_tcp_protocol.py    # Modbus protocol
+├── modbus_tcp_slave_tab.py   # Modbus server
+├── modbus_tcp_master_tab.py  # Modbus client
+├── test_protocol.py          # Protocol tests
+├── test_modbus_tcp.py        # Modbus tests
+└── create_ports.sh           # Virtual ports script
+```
 
 ### System Architecture Overview
 
@@ -100,6 +368,8 @@ graph TB
         HX[Hex Tab<br/>Hex View]
         HT[Host Tab<br/>Master Mode]
         DV[Device Tab<br/>Slave Mode]
+        MTS[Modbus TCP Slave<br/>Server Mode]
+        MTM[Modbus TCP Master<br/>Client Mode]
     end
     
     %% Serial Port Connections
@@ -113,6 +383,8 @@ graph TB
     GUI --> HX
     GUI --> HT
     GUI --> DV
+    GUI --> MTS
+    GUI --> MTM
     
     %% Protocol Usage
     HT --> PB
@@ -214,15 +486,20 @@ graph TD
         MT[Main Thread<br/>GUI Event Loop]
         RT[Read Thread<br/>Serial Reading]
         DQ[Data Queue<br/>thread.Queue]
+        NT1[Network Thread 1<br/>Modbus TCP Server]
+        NT2[Network Thread 2<br/>Modbus TCP Client]
         
         MT -->|after 25ms| UPDATE[update_gui]
         UPDATE -->|Process Queue| DQ
         RT -->|Put Data| DQ
+        NT1 -->|Socket Accept| CLIENT[Client Handler]
+        NT2 -->|Socket Connect| SERVER[Server Connection]
         
         subgraph "Thread Safety"
             TS1[GUI Updates<br/>Main Thread Only]
             TS2[Serial Read<br/>Separate Thread]
             TS3[Queue Operations<br/>Thread-Safe]
+            TS4[Socket Operations<br/>Thread-Safe]
         end
     end
     
@@ -231,12 +508,15 @@ graph TD
         R2[Thread Sleep<br/>5ms]
         G1[GUI Update<br/>25ms interval]
         T1[Tab Processing<br/>5ms interval]
+        N1[Network Timeout<br/>Configurable]
     end
     
     RT --> R1
     R1 --> R2
     MT --> G1
     G1 --> T1
+    NT1 --> N1
+    NT2 --> N1
 ```
 
 ### Module Dependencies
@@ -246,14 +526,24 @@ graph BT
     subgraph "External Dependencies"
         TK[tkinter<br/>GUI Framework]
         PS[pyserial<br/>Serial Communication]
+        SOCK[socket<br/>TCP/IP Networking]
         STD[Python stdlib<br/>threading, queue, etc.]
     end
     
-    subgraph "Application Modules"
+    subgraph "Core Modules"
         MAIN[serial_gui.py<br/>Main Application]
-        PROT[protocol.py<br/>Protocol Layer]
+        PROT[protocol.py<br/>Custom Protocol]
+    end
+    
+    subgraph "Tab Modules"
         HOST[host_tab.py<br/>Master Mode]
         DEV[device_tab.py<br/>Slave Mode]
+    end
+    
+    subgraph "Modbus Modules"
+        MTP[modbus_tcp_protocol.py<br/>Modbus Protocol]
+        MTS[modbus_tcp_slave_tab.py<br/>Modbus Server]
+        MTM[modbus_tcp_master_tab.py<br/>Modbus Client]
     end
     
     MAIN --> TK
@@ -263,382 +553,203 @@ graph BT
     DEV --> PROT
     MAIN --> HOST
     MAIN --> DEV
+    MTP --> STD
+    MTS --> MTP
+    MTS --> SOCK
+    MTM --> MTP
+    MTM --> SOCK
+    MAIN --> MTS
+    MAIN --> MTM
     
     style TK fill:#e1f5fe
     style PS fill:#e1f5fe
+    style SOCK fill:#e1f5fe
     style STD fill:#e1f5fe
     style MAIN fill:#fff3e0
     style PROT fill:#f3e5f5
     style HOST fill:#e8f5e9
     style DEV fill:#e8f5e9
+    style MTP fill:#fce4ec
+    style MTS fill:#fce4ec
+    style MTM fill:#fce4ec
 ```
 
-## 📡 Communication Protocol
+### Component Responsibilities
 
-### Protocol Overview
-The application implements a custom frame-based protocol designed for reliable register-based communication with embedded devices.
+#### Main Application (serial_gui.py)
+- **GUI Management**: Creates and manages the main window and notebook tabs
+- **Serial Port Management**: Handles port detection, connection, and disconnection
+- **Thread Management**: Creates and manages read thread for serial data
+- **Data Routing**: Routes incoming data to appropriate tabs
+- **Configuration**: Manages serial port settings (baud rate, parity, etc.)
 
-### Packet Structure
-```
-┌─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
-│ Start Flag  │ Device Addr │ Message ID  │ Length [N]  │ Data [N]    │ Checksum    │
-│   (1 byte)  │   (1 byte)  │   (1 byte)  │   (1 byte)  │  (N bytes)  │  (2 bytes)  │
-│    0x7E     │   0-247     │   0-255     │   0-255     │ Func + Data │ Fletcher-16 │
-└─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
-```
+#### Protocol Layer (protocol.py)
+- **PacketBuilder**: Constructs request packets with proper formatting
+- **PacketParser**: Validates and parses incoming packets
+- **Fletcher16**: Implements checksum calculation and verification
+- **RegisterMap**: Simulates device memory with 16-bit registers
+- **Error Handling**: Defines error codes and exception responses
 
-### Function Codes
+#### Host Tab (host_tab.py)
+- **Request Builder**: UI for configuring read/write operations
+- **Packet Preview**: Real-time packet visualization
+- **Response Handler**: Processes and displays responses
+- **Timeout Management**: Tracks pending requests and timeouts
+- **Statistics**: Maintains communication metrics
 
-#### Host → Device (Requests)
-| Code | Function | Parameters |
-|------|----------|------------|
-| 0x01 | Read Single Register | Register Address (2 bytes) |
-| 0x02 | Write Single Register | Register Address (2 bytes) + Value (2 bytes) |
-| 0x03 | Read Multiple Registers | Register Address (2 bytes) + Count (1 byte) |
-| 0x04 | Write Multiple Registers | Register Address (2 bytes) + Count (1 byte) + Values (2×Count bytes) |
+#### Device Tab (device_tab.py)
+- **Request Processing**: Handles incoming requests
+- **Response Generation**: Creates appropriate responses
+- **Register Management**: UI for register manipulation
+- **Error Simulation**: Testing error conditions
+- **Logging**: Maintains request/response logs
 
-#### Device → Host (Responses)
-| Code | Function | Parameters |
-|------|----------|------------|
-| 0x41 | Read Single Response | Register Address (2 bytes) + Value (2 bytes) |
-| 0x42 | Write Single Response | Register Address (2 bytes) + Value (2 bytes) |
-| 0x43 | Read Multiple Response | Register Address (2 bytes) + Count (1 byte) + Values (2×Count bytes) |
-| 0x44 | Write Multiple Response | Register Address (2 bytes) + Count (1 byte) |
+#### Modbus TCP Modules
+- **modbus_tcp_protocol.py**: Core Modbus frame handling
+- **modbus_tcp_slave_tab.py**: TCP server implementation
+- **modbus_tcp_master_tab.py**: TCP client implementation
 
-#### Error Responses
-| Code | Function | Error Code |
-|------|----------|------------|
-| 0x81-0x84 | Error Response | Error Code (1 byte) |
+### Data Flow Details
 
-### Error Codes
-- `0x01` - Invalid or unsupported function
-- `0x02` - Invalid register address  
-- `0x03` - Invalid register value
-- `0xFF` - Internal/unspecified error
-
-### Example Packet
-**Read Single Register at address 0x1234:**
-```
-7E 01 10 03 01 12 34 2F D9
-│  │  │  │  │  │  │  │  │
-│  │  │  │  │  │  │  └──┴─ Fletcher-16 checksum (0x2FD9)
-│  │  │  │  │  └──┴─────── Register address (0x1234)
-│  │  │  │  └──────────── Function code (0x01 - Read Single)
-│  │  │  └─────────────── Length (3 bytes of data)
-│  │  └────────────────── Message ID (0x10)
-│  └───────────────────── Device address (1)
-└──────────────────────── Start flag (0x7E)
-```
-
-## 🛠️ Installation & Setup
-
-### Prerequisites
-- **Python 3.7 or higher**
-- **tkinter** (included with most Python installations)
-  - Linux: `sudo apt-get install python3-tk` (if needed)
-- **pyserial** library
-
-### Installation Steps
-
-1. **Clone or download the project:**
-   ```bash
-   git clone <repository-url>
-   cd PySerial_GUI_Project
+1. **Serial Reception Path**
+   ```
+   Physical Port → pyserial → Read Thread → Queue → GUI Update → Tab Processing
    ```
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
+2. **Serial Transmission Path**
    ```
-   Or manually:
-   ```bash
-   pip install pyserial
+   User Input → Tab Handler → Protocol Encoder → pyserial → Physical Port
    ```
 
-3. **Run the application:**
-   ```bash
-   python serial_gui.py
+3. **Network Reception Path (Modbus)**
+   ```
+   TCP Socket → Network Thread → Frame Parser → Register Operation → Response
    ```
 
-### Platform-Specific Setup
-
-#### macOS
-- Install Homebrew (if not already installed)
-- Install socat for virtual ports: `brew install socat`
-
-#### Linux
-- Add user to dialout group: `sudo usermod -a -G dialout $USER`
-- Install socat: `sudo apt-get install socat` (Ubuntu/Debian)
-- Log out and back in for group changes to take effect
-
-#### Windows
-- No additional setup required
-- Virtual ports can be created using com0com or similar tools
-
-## 🎮 Usage Guide
-
-### Basic Serial Communication
-
-1. **Launch the application:**
-   ```bash
-   python serial_gui.py
+4. **Network Transmission Path (Modbus)**
+   ```
+   User Input → Frame Builder → TCP Socket → Network
    ```
 
-2. **Connect to a device:**
-   - Select serial port from dropdown (click Refresh to scan)
-   - Choose baud rate (default: 9600)
-   - Configure data bits, parity, stop bits as needed
-   - Click "Connect"
+### Critical Implementation Details
 
-3. **Send/receive data:**
-   - **Data Display tab**: View incoming data in real-time
-   - **Hex Display tab**: View data in hexadecimal format
-   - Type commands in the input field and press Enter or click Send
+#### Thread Safety
+- All GUI updates must occur in the main thread
+- Queue.Queue used for thread-safe data passing
+- No direct serial port access from GUI callbacks
+- Socket operations handled in separate threads
 
-![Data Display Overview](image/DisplayData.png)
+#### Buffer Management
+- 4KB read buffer for serial operations
+- Circular buffer pattern for packet assembly
+- Start flag (0x7E) detection for packet boundaries
+- Timeout-based buffer clearing for incomplete packets
 
-### Protocol Testing Mode
+#### Error Recovery
+- Automatic reconnection on serial errors
+- Graceful handling of port disconnection
+- Timeout recovery for pending requests
+- Exception catching at all I/O boundaries
 
-#### Host (Master) Mode
-Use this mode to send register commands to a device:
+#### Performance Optimization
+- 25ms GUI update interval (40 FPS)
+- 5ms serial read polling
+- Batch GUI updates to prevent flicker
+- Lazy tab updates (only active tab)
+- Efficient packet search algorithms
 
-![Host Master Mode](image/Host%20(Master).png)
+## Development
 
-1. **Switch to "Host (Master)" tab**
-2. **Configure device address** (1-247, or 0 for broadcast)
-3. **Select operation type:**
-   - Read Single (0x01)
-   - Write Single (0x02)  
-   - Read Multiple (0x03)
-   - Write Multiple (0x04)
-4. **Enter parameters:**
-   - Register address (hex format, e.g., "0010")
-   - Values as needed for write operations
-5. **Preview packet** in the color-coded Packet Preview & Inspection section
-   - Hex bytes shown in blue bold
-   - Parsed fields with color-coded labels, values, and function codes
-   - Real-time updates as you modify parameters
-6. **Click "Send Request"**
-7. **Monitor response** in the Communication Log with expanded Packet Preview section
+### Adding New Protocols
 
-#### Device (Slave) Mode  
-Use this mode to simulate a device:
+1. **Create protocol module**
+   ```python
+   class NewProtocol:
+       def encode(self, data):
+           # Encoding logic
+       def decode(self, data):
+           # Decoding logic
+   ```
 
-![Device Slave Mode](image/Device%20(Slave).png)
+2. **Implement GUI tab**
+   ```python
+   class NewProtocolTab(ttk.Frame):
+       def __init__(self, parent):
+           # GUI setup
+   ```
 
-1. **Switch to "Device (Slave)" tab**
-2. **Configure device settings:**
-   - Set device address (1-247) and register map size in the compact Device Configuration panel
-   - Click "Test Pattern" to load sample data or "Clear" to reset registers
-3. **Set up error simulation:** Choose from 5 error types in the 3-column layout (No Error, Invalid Function, Invalid Address, Invalid Value, Internal Error)
-4. **Monitor communication:**
-   - **Incoming Requests**: View detailed logs with packet counters and auto-scroll toggle
-   - **Outgoing Responses**: Monitor sent responses with search functionality
-   - **Statistics**: Track request/response/error counts with reset functionality
-5. **Edit registers:** Use the Register Map section with enhanced search, tooltips, and "Set Multiple" functionality (comma-separated values)
+3. **Register in main application**
+   ```python
+   self.notebook.add(NewProtocolTab(self.notebook), text="New Protocol")
+   ```
 
-### Virtual Port Testing
+### Code Style
+- PEP 8 compliance
+- Type hints for parameters
+- Docstrings for public methods
+- Exception handling
+- Resource cleanup
 
-For testing without hardware, create virtual serial port pairs:
-
-#### macOS/Linux:
-```bash
-# Create virtual ports
-./create_ports.sh
-
-# In terminal 1 (Device):
-python serial_gui.py
-# Connect to first virtual port (e.g., /dev/ttys006)
-# Go to Device tab, set address 1, load test pattern
-
-# In terminal 2 (Host):  
-python serial_gui.py
-# Connect to second virtual port (e.g., /dev/ttys007)
-# Go to Host tab, send commands to address 1
-```
-
-#### Windows:
-- Install com0com or similar virtual port software
-- Create a COM pair (e.g., COM10 ↔ COM11)
-- Use same procedure as above with Windows COM ports
-
-## 🧪 Testing
-
-### Protocol Validation
-Run the comprehensive test suite:
-```bash
-python test_protocol.py
-```
-
-This tests:
-- Fletcher-16 checksum calculation
-- Packet encoding/decoding
-- Register map operations  
-- Error response generation
-- Full request-response cycles
-
-### Port Detection Testing
-Check what serial ports are detected:
-```bash
-python test_port_detection.py
-```
-
-### Manual Testing Scenarios
-
-1. **Basic Communication Test:**
-   - Host sends Read Single (0x01) to register 0x0000
-   - Device responds with current value
-
-2. **Write Operation Test:**
-   - Host sends Write Single (0x02) with value 0x1234
-   - Device updates register and confirms
-
-3. **Multiple Register Test:**
-   - Host sends Read Multiple (0x03) for 4 registers
-   - Device returns array of values
-
-4. **Error Handling Test:**
-   - Enable error simulation in Device tab
-   - Host receives error responses with appropriate codes
-
-5. **Broadcast Test:**
-   - Host sends to address 0 (broadcast)
-   - Device processes but doesn't respond
-
-## 🔧 Development
-
-### Architecture Overview
-The application uses a modular architecture with clear separation of concerns:
-
-- **GUI Layer** (`serial_gui.py`): Tkinter interface and event handling
-- **Protocol Layer** (`protocol.py`): Packet encoding/decoding and validation  
-- **Application Layer** (`host_tab.py`, `device_tab.py`): Business logic
-- **Communication Layer**: Threading and queue-based serial I/O
-
-### Threading Model
-- **Main Thread**: GUI updates and event handling
-- **Read Thread**: Non-blocking serial data reading with improved reliability
-- **Queue-based**: Thread-safe communication via `queue.Queue`
-- **Periodic Updates**: GUI refreshes every 25ms using `root.after()` for better responsiveness
-- **Enhanced Data Capture**: Always-on reading strategy eliminates race conditions
-
-### Extending the Protocol
-
-#### Adding New Function Codes:
-1. Update `FunctionCode` enum in `protocol.py`
-2. Add packet builders in `PacketBuilder` class
-3. Add parsers in `PacketParser` class  
-4. Update UI in host/device tabs
-5. Add test cases in `test_protocol.py`
-
-#### Custom Register Types:
-```python
-class CustomRegisterMap(RegisterMap):
-    def __init__(self):
-        super().__init__(size=512)
-        # Add custom register behaviors
-        
-    def read(self, address):
-        # Custom read logic
-        return super().read(address)
-```
-
-### Code Style Guidelines
-- **PEP 8** compliance
-- **Type hints** for function parameters and returns
-- **Docstrings** for all public methods
-- **Error handling** with specific exception types
-- **Resource cleanup** in finally blocks
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-#### "Port not found" or "Access denied"
-- **Linux**: Add user to dialout group: `sudo usermod -a -G dialout $USER`  
-- **macOS**: Check port permissions: `ls -la /dev/tty*`
-- **Windows**: Check device manager for COM port conflicts
+**Port Access Denied**
+- Linux: Add user to dialout group
+- Windows: Check COM port availability
+- macOS: Verify port permissions
 
-#### GUI freezing during operations
-- This should not occur with the current implementation
-- If it does, check that threading is properly implemented
-- Verify `timeout=0` is set on serial port
+**Connection Failed**
+- Check cable connections
+- Verify baud rate settings
+- Confirm port selection
+- Test with loopback
 
-#### Data reception issues or missing packets
-- **Fixed in v2.1**: Improved serial reading eliminates race conditions
-- Uses continuous polling instead of `in_waiting` checks
-- Faster response times (5ms polling, 25ms GUI updates)
-- Should no longer require sending data multiple times
+**Missing Data**
+- Verify timeout settings
+- Check buffer sizes
+- Enable auto-scroll
+- Review data format
 
-#### Virtual ports not visible in GUI
-- Click the "Refresh" button to rescan ports
-- Check that virtual ports exist: `ls -la /dev/ttys*`
-- Verify socat is running: `ps aux | grep socat`
-
-#### Protocol checksum errors
-- Verify Fletcher-16 implementation matches specification
-- Check byte order (big-endian) for multi-byte values
-- Use `test_protocol.py` to validate checksum calculation
-
-#### Device not responding in slave mode
-- Check device address matches between Host and Device tabs
-- Verify serial connection is established on both instances
-- Check for firewall or permission issues
+**Modbus TCP Issues**
+- Confirm network connectivity
+- Check firewall settings
+- Verify Unit ID match
+- Test with known good client/server
 
 ### Debug Mode
-Enable detailed logging by modifying the main application:
+
+Enable detailed logging:
 ```python
 import logging
 logging.basicConfig(level=logging.DEBUG)
 ```
 
 ### Performance Tuning
-- **Current optimized settings**: 
-  - GUI update interval: 25ms (`self.root.after(25, ...)`)
-  - Read thread polling: 5ms delay
-  - Tab processing: 5ms intervals
-- Modify serial buffer sizes for high-throughput applications (current: 4KB buffer)
-- Tune timeout values in host tab for faster/slower devices
-- **Data Reception Improvements (v2.1)**:
-  - Eliminated race conditions in serial reading
-  - Continuous polling strategy for reliable data capture
-  - Reduced timing delays for better responsiveness
+- GUI refresh: 25ms intervals
+- Serial polling: 5ms delay
+- Buffer size: 4KB default
+- Timeout: Configurable per operation
 
-## 📈 Future Enhancements
+## Contributing
 
-### Planned Features
-- [ ] **Scripting Interface**: Python script execution for automated testing
-- [ ] **Plugin Architecture**: Loadable modules for custom protocols  
-- [ ] **Data Visualization**: Real-time plotting of register values
-- [ ] **Configuration Profiles**: Save/load device configurations
-- [ ] **Remote Access**: Network-based device access
-- [ ] **Firmware Updates**: Over-the-air update capabilities
-
-### Contributing
 1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request with detailed description
+2. Create feature branch
+3. Add comprehensive tests
+4. Ensure code quality
+5. Submit pull request
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - See LICENSE file for details
 
-## 🤝 Acknowledgments
+## Support
 
-- **PySerial** library developers for excellent serial communication support
-- **Tkinter** for providing a robust cross-platform GUI framework
-- **socat** developers for virtual serial port capabilities
-- **Fletcher checksum** algorithm for reliable data integrity
-
-## 📞 Support
-
-For issues, questions, or contributions:
-- Create an issue in the project repository
-- Check the troubleshooting section above
-- Review the development notes in `dev_note.md`
+For issues or questions:
+- Create an issue in the repository
+- Review troubleshooting section
+- Check existing documentation
 
 ---
 
-**Happy Testing!** 🚀
+**Version 2.1** | **Last Updated: 2025**
