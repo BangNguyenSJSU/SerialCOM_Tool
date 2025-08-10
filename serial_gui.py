@@ -18,6 +18,8 @@ from typing import Optional, List, Tuple
 import json
 from host_tab import HostTab
 from device_tab import DeviceTab
+from modbus_tcp_slave_tab import ModbusTCPSlaveTab
+from modbus_tcp_master_tab import ModbusTCPMasterTab
 
 
 class ToolTip:
@@ -404,8 +406,29 @@ class SerialGUI:
         
         self.device_tab = DeviceTab(device_tab, lambda: self.serial_port, self.data_queue)
         
+        # Modbus TCP Slave tab with blue theme
+        modbus_slave_tab = ttk.Frame(self.notebook, style='Data.TFrame')
+        self.notebook.add(modbus_slave_tab, text="🌐 Modbus TCP Slave")
         
+        # Add header label for Modbus TCP Slave tab with improved styling
+        modbus_slave_header = tk.Label(modbus_slave_tab, text="🌐   MODBUS TCP SLAVE - Server Mode",
+                                      bg='#2196F3', fg='white',
+                                      font=('Arial', 16, 'bold'), pady=12)
+        modbus_slave_header.pack(fill=tk.X)
         
+        self.modbus_slave_tab = ModbusTCPSlaveTab(modbus_slave_tab)
+        
+        # Modbus TCP Master tab with purple theme
+        modbus_master_tab = ttk.Frame(self.notebook, style='Hex.TFrame')
+        self.notebook.add(modbus_master_tab, text="🔌 Modbus TCP Master")
+        
+        # Add header label for Modbus TCP Master tab with improved styling
+        modbus_master_header = tk.Label(modbus_master_tab, text="🔌   MODBUS TCP MASTER - Client Mode",
+                                       bg='#9C27B0', fg='white',
+                                       font=('Arial', 16, 'bold'), pady=12)
+        modbus_master_header.pack(fill=tk.X)
+        
+        self.modbus_master_tab = ModbusTCPMasterTab(modbus_master_tab)
         
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
@@ -431,6 +454,15 @@ class SerialGUI:
                     self.device_tab.incoming_request_log.config(font=new_font)
                 if hasattr(self.device_tab, 'outgoing_response_log'):
                     self.device_tab.outgoing_response_log.config(font=new_font)
+            
+            # Update Modbus TCP tab displays if they exist
+            if hasattr(self, 'modbus_slave_tab') and hasattr(self.modbus_slave_tab, 'log_display'):
+                self.modbus_slave_tab.log_display.config(font=new_font)
+                self.modbus_slave_tab.register_display.config(font=new_font)
+            
+            if hasattr(self, 'modbus_master_tab') and hasattr(self.modbus_master_tab, 'log_display'):
+                self.modbus_master_tab.log_display.config(font=new_font)
+                self.modbus_master_tab.preview_text.config(font=new_font)
                     
         except Exception as e:
             print(f"Font update error: {e}")
