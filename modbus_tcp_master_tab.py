@@ -128,6 +128,10 @@ class ModbusTCPMasterTab:
                                     bg='#f0f0f0', fg='red', font=('Arial', 9, 'bold'))
         self.status_label.pack(side=tk.LEFT)
         
+        self.status_indicator = tk.Label(conn_control_frame, text="❌", 
+                                    bg='#f0f0f0', fg='red', font=('Arial', 12, 'bold'))
+        self.status_indicator.pack(side=tk.LEFT, padx=(5, 0))
+        
         # Two-column layout: Request config + Stats | Preview + Log
         content_frame = tk.Frame(main_frame, bg='#f0f0f0')
         content_frame.pack(fill=tk.BOTH, expand=True)
@@ -374,57 +378,75 @@ class ModbusTCPMasterTab:
         if self.is_connected:
             return
         
+        server_ip = self.server_ip_var.get().strip()
+        server_port = self.server_port_var.get()
+        
+        if not server_ip:
+            messagebox.showerror("Error", "Please enter a server IP address")
+            return
+        
         try:
-            server_ip = self.server_ip_var.get().strip()
-            server_port = self.server_port_var.get()
-            
-            if not server_ip:
-                messagebox.showerror("Error", "Please enter server IP address")
-                return
-            
-            # Create socket and connect
-            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.client_socket.settimeout(5.0)  # 5 second connection timeout
-            self.client_socket.connect((server_ip, server_port))
-            
             with self.connection_lock:
+                # Create socket and connect
+                self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.client_socket.settimeout(5.0)  # Connection timeout
+                self.client_socket.connect((server_ip, server_port))
+                
                 self.is_connected = True
-            
-            # Update UI
-            self.connect_btn.config(state=tk.DISABLED)
-            self.disconnect_btn.config(state=tk.NORMAL)
-            self.send_btn.config(state=tk.NORMAL)
-            self.server_ip_entry.config(state=tk.DISABLED)
-            self.server_port_spin.config(state=tk.DISABLED)
-            self.status_label.config(text="Connected", fg="green")
-            
-            self.add_log(f"Connected to {server_ip}:{server_port}", "info")
-            
+                
+                # Update UI state with enhanced styling
+                self.connect_btn.config(state=tk.DISABLED)
+                self.disconnect_btn.config(state=tk.NORMAL)
+                self.send_btn.config(state=tk.NORMAL)
+                self.server_ip_entry.config(state=tk.DISABLED)
+                self.server_port_spin.config(state=tk.DISABLED)
+                self.status_label.config(text="Connected", fg=self.COLORS['fg_connected'])
+                self.status_indicator.config(fg=self.COLORS['fg_connected'])
+                
+                self.add_log(f"✅ Connected to {server_ip}:{server_port}", "info")
+                
+                # Start receive thread
+                receive_thread = threading.Thread(target=self.receive_response, daemon=True)
+                receive_thread.start()
+                
         except Exception as e:
-            messagebox.showerror("Connection Error", f"Failed to connect: {str(e)}")
-            self.disconnect_from_server()
+            self.is_connected = False
+            if self.client_socket:
+                try:
+                    self.client_socket.close()
+                except:
+                    pass
+                self.client_socket = None
+            
+            error_msg = f"Failed to connect to {server_ip}:{server_port}: {str(e)}"
+            messagebox.showerror("Connection Error", error_msg)
+            self.add_log(f"❌ {error_msg}", "error")
     
     def disconnect_from_server(self):
         """Disconnect from server"""
         with self.connection_lock:
             self.is_connected = False
-        
-        if self.client_socket:
-            try:
-                self.client_socket.close()
-            except:
-                pass
-            self.client_socket = None
-        
-        # Update UI
-        self.connect_btn.config(state=tk.NORMAL)
-        self.disconnect_btn.config(state=tk.DISABLED)
-        self.send_btn.config(state=tk.DISABLED)
-        self.server_ip_entry.config(state=tk.NORMAL)
-        self.server_port_spin.config(state=tk.NORMAL)
-        self.status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
-        
-        self.add_log("Disconnected", "info")
+            
+            if self.client_socket:
+                try:
+                    self.client_socket.close()
+                except:
+                    pass
+                self.client_socket = None
+            
+            # Clear pending requests
+            self.pending_requests.clear()
+            
+            # Update UI state with enhanced styling
+            self.connect_btn.config(state=tk.NORMAL)
+            self.disconnect_btn.config(state=tk.DISABLED)
+            self.send_btn.config(state=tk.DISABLED)
+            self.server_ip_entry.config(state=tk.NORMAL)
+            self.server_port_spin.config(state=tk.NORMAL)
+            self.status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
+            self.status_indicator.config(fg=self.COLORS['fg_disconnected'])
+            
+            self.add_log("🔌 Disconnected", "info")
     
     def send_request(self):
         """Send Modbus request"""
