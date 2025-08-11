@@ -406,18 +406,6 @@ class SerialGUI:
         
         self.device_tab = DeviceTab(device_tab, lambda: self.serial_port, self.data_queue)
         
-        # Modbus TCP Slave tab with blue theme
-        modbus_slave_tab = ttk.Frame(self.notebook, style='Data.TFrame')
-        self.notebook.add(modbus_slave_tab, text="🌐 Modbus TCP Slave")
-        
-        # Add header label for Modbus TCP Slave tab with improved styling
-        modbus_slave_header = tk.Label(modbus_slave_tab, text="🌐   MODBUS TCP SLAVE - Server Mode",
-                                      bg='#2196F3', fg='white',
-                                      font=('Arial', 16, 'bold'), pady=12)
-        modbus_slave_header.pack(fill=tk.X)
-        
-        self.modbus_slave_tab = ModbusTCPSlaveTab(modbus_slave_tab)
-        
         # Modbus TCP Master tab with purple theme
         modbus_master_tab = ttk.Frame(self.notebook, style='Hex.TFrame')
         self.notebook.add(modbus_master_tab, text="🔌 Modbus TCP Master")
@@ -429,6 +417,18 @@ class SerialGUI:
         modbus_master_header.pack(fill=tk.X)
         
         self.modbus_master_tab = ModbusTCPMasterTab(modbus_master_tab)
+        
+        # Modbus TCP Slave tab with blue theme
+        modbus_slave_tab = ttk.Frame(self.notebook, style='Data.TFrame')
+        self.notebook.add(modbus_slave_tab, text="🌐 Modbus TCP Slave")
+        
+        # Add header label for Modbus TCP Slave tab with improved styling
+        modbus_slave_header = tk.Label(modbus_slave_tab, text="🌐   MODBUS TCP SLAVE - Server Mode",
+                                      bg='#2196F3', fg='white',
+                                      font=('Arial', 16, 'bold'), pady=12)
+        modbus_slave_header.pack(fill=tk.X)
+        
+        self.modbus_slave_tab = ModbusTCPSlaveTab(modbus_slave_tab)
         
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)

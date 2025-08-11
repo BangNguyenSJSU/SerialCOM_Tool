@@ -84,6 +84,57 @@ SerialCOM Tool is a professional-grade communication suite designed for engineer
 
 ### Setup Instructions
 
+#### Method 1: Using Virtual Environment (Recommended)
+
+**Step 1: Clone the repository**
+```bash
+git clone <repository-url>
+cd SerialCOM_Tool
+```
+
+**Step 2: Create and activate virtual environment**
+
+**Windows:**
+```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+venv\Scripts\activate
+
+# You should see (venv) in your command prompt
+```
+
+**macOS/Linux:**
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# You should see (venv) in your terminal prompt
+```
+
+**Step 3: Install dependencies**
+```bash
+# With virtual environment activated
+pip install -r requirements.txt
+```
+
+**Step 4: Run the application**
+```bash
+# With virtual environment activated
+python serial_gui.py
+```
+
+**Step 5: Deactivate virtual environment (when done)**
+```bash
+deactivate
+```
+
+#### Method 2: System-wide Installation (Alternative)
+
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
@@ -99,6 +150,77 @@ SerialCOM Tool is a professional-grade communication suite designed for engineer
    ```bash
    python serial_gui.py
    ```
+
+### Virtual Environment Benefits
+
+Using a virtual environment provides several advantages:
+
+- **Isolation**: Dependencies are isolated from your system Python
+- **Reproducibility**: Consistent environment across different machines
+- **Version Control**: Specific package versions without conflicts
+- **Clean Uninstall**: Easy to remove by deleting the venv folder
+- **Multiple Projects**: Different Python environments for different projects
+
+### Setting Up on Different Computers
+
+When cloning this project on a new computer, follow these steps:
+
+**1. First-time setup on new machine:**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd SerialCOM_Tool
+
+# Create virtual environment
+python -m venv venv  # Windows
+python3 -m venv venv  # macOS/Linux
+
+# Activate virtual environment
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # macOS/Linux
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+python serial_gui.py
+```
+
+**2. Daily usage (after initial setup):**
+```bash
+# Navigate to project directory
+cd SerialCOM_Tool
+
+# Activate virtual environment
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # macOS/Linux
+
+# Run the application
+python serial_gui.py
+
+# When finished, deactivate
+deactivate
+```
+
+**3. Updating dependencies:**
+```bash
+# With virtual environment activated
+pip install -r requirements.txt --upgrade
+```
+
+### Troubleshooting Virtual Environment
+
+**Virtual environment not found:**
+- Ensure you're in the correct project directory
+- Recreate the virtual environment if needed
+
+**Permission errors:**
+- On Linux/macOS: Use `python3` instead of `python`
+- On Windows: Run command prompt as administrator if needed
+
+**Package installation fails:**
+- Update pip: `pip install --upgrade pip`
+- Use specific Python version: `python3.8 -m venv venv`
 
 ### Platform-Specific Requirements
 

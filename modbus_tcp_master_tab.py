@@ -68,224 +68,204 @@ class ModbusTCPMasterTab:
     
     def create_widgets(self):
         """Create Modbus TCP Master tab UI elements"""
-        # Main container with consistent styling
+        # Main container with reduced padding
         main_frame = tk.Frame(self.frame, bg=self.COLORS['bg_main'])
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Top section - Connection Configuration with original styling
+        # Compact connection configuration
         config_frame = tk.LabelFrame(main_frame, text="Connection Configuration",
                                     bg=self.COLORS['bg_connection'],
                                     fg='#01579b',
-                                    font=('Arial', 10, 'bold'),
-                                    relief=tk.RAISED, bd=2)
-        config_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
+                                    font=('Arial', 9, 'bold'),
+                                    relief=tk.RAISED, bd=1)
+        config_frame.pack(fill=tk.X, pady=(0, 5), padx=2)
         
-        # Connection settings with consistent fonts and spacing
+        # Compact connection settings
         conn_frame = ttk.Frame(config_frame)
-        conn_frame.pack(fill=tk.X, pady=(0, 8))
+        conn_frame.pack(fill=tk.X, pady=(2, 4))
         
         # Server IP
-        ttk.Label(conn_frame, text="Server IP:", font=('Arial', 10)).grid(row=0, column=0, sticky=tk.E, padx=(0, 12), pady=6)
+        ttk.Label(conn_frame, text="Server IP:", font=('Arial', 9)).grid(row=0, column=0, sticky=tk.E, padx=(0, 5), pady=2)
         self.server_ip_var = tk.StringVar(value="127.0.0.1")
-        self.server_ip_entry = ttk.Entry(conn_frame, textvariable=self.server_ip_var, width=16, font=('Arial', 10))
-        self.server_ip_entry.grid(row=0, column=1, padx=(0, 25), pady=6, sticky=tk.W)
+        self.server_ip_entry = ttk.Entry(conn_frame, textvariable=self.server_ip_var, width=12, font=('Arial', 9))
+        self.server_ip_entry.grid(row=0, column=1, padx=(0, 10), pady=2, sticky=tk.W)
         
         # Server Port  
-        ttk.Label(conn_frame, text="Server Port:", font=('Arial', 10)).grid(row=0, column=2, sticky=tk.E, padx=(0, 12), pady=6)
+        ttk.Label(conn_frame, text="Port:", font=('Arial', 9)).grid(row=0, column=2, sticky=tk.E, padx=(0, 5), pady=2)
         self.server_port_var = tk.IntVar(value=502)
         self.server_port_spin = ttk.Spinbox(conn_frame, from_=1, to=65535, 
-                                           textvariable=self.server_port_var, width=12, font=('Arial', 10))
-        self.server_port_spin.grid(row=0, column=3, padx=(0, 25), pady=6, sticky=tk.W)
+                                           textvariable=self.server_port_var, width=8, font=('Arial', 9))
+        self.server_port_spin.grid(row=0, column=3, padx=(0, 10), pady=2, sticky=tk.W)
         
         # Unit ID
-        ttk.Label(conn_frame, text="Unit ID:", font=('Arial', 10)).grid(row=0, column=4, sticky=tk.E, padx=(0, 12), pady=6)
+        ttk.Label(conn_frame, text="Unit ID:", font=('Arial', 9)).grid(row=0, column=4, sticky=tk.E, padx=(0, 5), pady=2)
         self.unit_id_var = tk.IntVar(value=self.unit_id)
         self.unit_id_spin = ttk.Spinbox(conn_frame, from_=1, to=247, textvariable=self.unit_id_var,
-                                       width=10, font=('Arial', 10), command=self.update_unit_id)
-        self.unit_id_spin.grid(row=0, column=5, pady=6, sticky=tk.W)
+                                       width=6, font=('Arial', 9), command=self.update_unit_id)
+        self.unit_id_spin.grid(row=0, column=5, pady=2, sticky=tk.W)
         
-        # Connection controls with improved layout
-        conn_control_frame = ttk.Frame(config_frame)
-        conn_control_frame.pack(fill=tk.X, pady=(10, 0))
-        
-        # Button container
-        button_container = ttk.Frame(conn_control_frame)
-        button_container.pack(side=tk.LEFT)
-        
-        self.connect_btn = ttk.Button(button_container, text="Connect", command=self.connect_to_server, width=12)
-        self.connect_btn.pack(side=tk.LEFT, padx=(0, 12))
-        
-        self.disconnect_btn = ttk.Button(button_container, text="Disconnect", command=self.disconnect_from_server,
-                                        state=tk.DISABLED, width=12)
-        self.disconnect_btn.pack(side=tk.LEFT)
-        
-        # Settings container on the right
-        settings_container = ttk.Frame(conn_control_frame)
-        settings_container.pack(side=tk.RIGHT)
-        
-        ttk.Label(settings_container, text="Timeout (ms):", font=('Arial', 10)).pack(side=tk.LEFT, padx=(0, 8))
+        # Timeout on same row
+        ttk.Label(conn_frame, text="Timeout(ms):", font=('Arial', 9)).grid(row=0, column=6, sticky=tk.E, padx=(10, 5), pady=2)
         self.timeout_var = tk.IntVar(value=self.response_timeout)
-        ttk.Spinbox(settings_container, from_=100, to=10000, textvariable=self.timeout_var,
-                   width=8, font=('Arial', 10), increment=100, command=self.update_timeout).pack(side=tk.LEFT)
+        ttk.Spinbox(conn_frame, from_=100, to=10000, textvariable=self.timeout_var,
+                   width=6, font=('Arial', 9), increment=100, command=self.update_timeout).grid(row=0, column=7, pady=2, sticky=tk.W)
         
-        # Status section (moved below buttons for better clarity)
-        status_frame = ttk.Frame(config_frame)
-        status_frame.pack(fill=tk.X, pady=(8, 0))
+        # Compact connection controls and status on second row
+        conn_control_frame = ttk.Frame(config_frame)
+        conn_control_frame.pack(fill=tk.X, pady=(4, 2))
         
-        ttk.Label(status_frame, text="Status:", font=('Arial', 10)).pack(side=tk.LEFT)
-        self.status_label = tk.Label(status_frame, text="Disconnected", 
-                                    bg='#f0f0f0', fg='red', font=('Arial', 10, 'bold'))
-        self.status_label.pack(side=tk.LEFT, padx=(8, 0))
+        # Buttons on left
+        self.connect_btn = ttk.Button(conn_control_frame, text="Connect", command=self.connect_to_server, width=10)
+        self.connect_btn.pack(side=tk.LEFT, padx=(0, 5))
         
-        # Two-column layout
-        columns_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        columns_frame.pack(fill=tk.BOTH, expand=True)
-        columns_frame.columnconfigure(0, weight=3)  # Left column wider
-        columns_frame.columnconfigure(1, weight=2)  # Right column narrower
+        self.disconnect_btn = ttk.Button(conn_control_frame, text="Disconnect", command=self.disconnect_from_server,
+                                        state=tk.DISABLED, width=10)
+        self.disconnect_btn.pack(side=tk.LEFT, padx=(0, 15))
         
-        # Left column
-        left_column = tk.Frame(columns_frame, bg='#f0f0f0')
+        # Status in center
+        ttk.Label(conn_control_frame, text="Status:", font=('Arial', 9)).pack(side=tk.LEFT, padx=(0, 5))
+        self.status_label = tk.Label(conn_control_frame, text="Disconnected", 
+                                    bg='#f0f0f0', fg='red', font=('Arial', 9, 'bold'))
+        self.status_label.pack(side=tk.LEFT)
+        
+        # Two-column layout: Request config + Stats | Preview + Log
+        content_frame = tk.Frame(main_frame, bg='#f0f0f0')
+        content_frame.pack(fill=tk.BOTH, expand=True)
+        content_frame.columnconfigure(0, weight=1)  # Request config + Stats
+        content_frame.columnconfigure(1, weight=2)  # Preview + Log
+        
+        # Left column: Request Configuration + Statistics
+        left_column = tk.Frame(content_frame, bg='#f0f0f0')
         left_column.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
         
-        # Right column  
-        right_column = tk.Frame(columns_frame, bg='#f0f0f0')
+        # Right column: Preview + Communication Log
+        right_column = tk.Frame(content_frame, bg='#f0f0f0')
         right_column.grid(row=0, column=1, sticky='nsew', padx=(5, 0))
         
         # === LEFT COLUMN ===
         
-        # Request Configuration with improved styling
-        request_frame = ttk.LabelFrame(left_column, text="Request Configuration", padding="12")
-        request_frame.pack(fill=tk.X, pady=(0, 12))
+        # Request Configuration with compact styling
+        request_frame = ttk.LabelFrame(left_column, text="Request Configuration", padding="6")
+        request_frame.pack(fill=tk.X, pady=(0, 5))
         
-        # Operation selection with better spacing
+        # Compact operation selection
         op_frame = ttk.Frame(request_frame)
-        op_frame.pack(fill=tk.X, pady=(0, 12))
+        op_frame.pack(fill=tk.X, pady=(0, 6))
         
-        ttk.Label(op_frame, text="Operation:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT, padx=(0, 15))
+        ttk.Label(op_frame, text="Operation:", font=('Arial', 9, 'bold')).pack(side=tk.TOP, anchor=tk.W)
         
         self.operation_var = tk.StringVar(value="read")
-        ttk.Radiobutton(op_frame, text="Multi Read (0x03)", variable=self.operation_var,
-                       value="read", command=self.update_preview).pack(side=tk.LEFT, padx=(0, 25))
-        ttk.Radiobutton(op_frame, text="Multi Write (0x10)", variable=self.operation_var,
+        ttk.Radiobutton(op_frame, text="Read (0x03)", variable=self.operation_var,
+                       value="read", command=self.update_preview).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Radiobutton(op_frame, text="Write (0x10)", variable=self.operation_var,
                        value="write", command=self.update_preview).pack(side=tk.LEFT)
         
-        # Parameters with consistent fonts and widths
+        # Compact parameters layout
         params_frame = ttk.Frame(request_frame)
-        params_frame.pack(fill=tk.X, pady=(0, 12))
+        params_frame.pack(fill=tk.X, pady=(0, 6))
         
         # Start Address
-        ttk.Label(params_frame, text="Start Address:", font=('Arial', 10)).grid(row=0, column=0, sticky=tk.E, padx=(0, 12), pady=6)
+        ttk.Label(params_frame, text="Start Address:", font=('Arial', 9)).grid(row=0, column=0, sticky=tk.W, pady=2)
         self.start_addr_var = tk.StringVar(value="0000")
-        self.start_addr_entry = ttk.Entry(params_frame, textvariable=self.start_addr_var, width=12, font=('Arial', 10))
-        self.start_addr_entry.grid(row=0, column=1, padx=(0, 8), pady=6, sticky=tk.W)
+        self.start_addr_entry = ttk.Entry(params_frame, textvariable=self.start_addr_var, width=8, font=('Arial', 9))
+        self.start_addr_entry.grid(row=0, column=1, padx=(5, 2), pady=2, sticky=tk.W)
         self.start_addr_var.trace('w', lambda *args: self.update_preview())
         
-        ttk.Label(params_frame, text="(hex)", font=('Arial', 9), foreground='gray').grid(row=0, column=2, sticky=tk.W, pady=6, padx=(0, 20))
+        ttk.Label(params_frame, text="(hex)", font=('Arial', 8), foreground='gray').grid(row=0, column=2, sticky=tk.W, pady=2)
         
-        # Count (for read) / Values (for write)
-        self.count_label = ttk.Label(params_frame, text="Count:", font=('Arial', 10))
-        self.count_label.grid(row=0, column=3, sticky=tk.E, padx=(0, 12), pady=6)
+        # Count (for read)
+        self.count_label = ttk.Label(params_frame, text="Count:", font=('Arial', 9))
+        self.count_label.grid(row=1, column=0, sticky=tk.W, pady=2)
         self.count_var = tk.IntVar(value=1)
-        self.count_spin = ttk.Spinbox(params_frame, from_=1, to=125, textvariable=self.count_var, width=10, font=('Arial', 10))
-        self.count_spin.grid(row=0, column=4, pady=6, sticky=tk.W)
+        self.count_spin = ttk.Spinbox(params_frame, from_=1, to=125, textvariable=self.count_var, width=8, font=('Arial', 9))
+        self.count_spin.grid(row=1, column=1, padx=(5, 0), pady=2, sticky=tk.W)
         self.count_var.trace('w', lambda *args: self.update_preview())
         
-        # Values for write operation (on second row for better spacing)
-        self.values_label = ttk.Label(params_frame, text="Values (hex, comma-separated):", font=('Arial', 10))
+        # Values for write operation
+        self.values_label = ttk.Label(params_frame, text="Values (hex):", font=('Arial', 9))
         self.values_var = tk.StringVar(value="0000,0001,0002")
-        self.values_entry = ttk.Entry(params_frame, textvariable=self.values_var, width=50, font=('Arial', 10))
+        self.values_entry = ttk.Entry(params_frame, textvariable=self.values_var, width=25, font=('Arial', 9))
         self.values_var.trace('w', lambda *args: self.update_preview())
         
-        # Send button with improved styling
+        # Compact send button
         send_frame = ttk.Frame(request_frame)
-        send_frame.pack(fill=tk.X, pady=(8, 0))
+        send_frame.pack(fill=tk.X, pady=(6, 0))
         
         self.send_btn = ttk.Button(send_frame, text="Send Request", command=self.send_request, 
-                                  state=tk.DISABLED, width=15)
+                                  state=tk.DISABLED, width=12)
         self.send_btn.pack(side=tk.LEFT)
         
-        # Preview with enhanced styling
-        preview_frame = ttk.LabelFrame(left_column, text="Request Preview", padding="10")
-        preview_frame.pack(fill=tk.BOTH, expand=True)
+        # Statistics section in left column
+        stats_frame = ttk.LabelFrame(left_column, text="Statistics", padding="4")
+        stats_frame.pack(fill=tk.X, pady=(5, 0))
         
-        self.preview_text = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, height=8,
-                                                     font=("Courier", 11), bg='#FAFAFA')
-        self.preview_text.pack(fill=tk.BOTH, expand=True)
+        # Vertical compact layout
+        stats_grid = ttk.Frame(stats_frame)
+        stats_grid.pack(fill=tk.X)
         
-        # Configure tags for better readability
-        self.preview_text.tag_config("header", font=("Courier", 11, "bold"), foreground="#0066CC")
-        self.preview_text.tag_config("field", font=("Courier", 11), foreground="#333333")
-        self.preview_text.tag_config("value", font=("Courier", 11, "bold"), foreground="#006600")
-        self.preview_text.tag_config("hex", font=("Courier", 11, "bold"), foreground="#9966CC")
+        ttk.Label(stats_grid, text="Requests:", font=('Arial', 8)).grid(row=0, column=0, sticky=tk.W)
+        self.requests_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'))
+        self.requests_label.grid(row=0, column=1, sticky=tk.W, padx=(5, 0))
+        
+        ttk.Label(stats_grid, text="Responses:", font=('Arial', 8)).grid(row=1, column=0, sticky=tk.W)
+        self.responses_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'))
+        self.responses_label.grid(row=1, column=1, sticky=tk.W, padx=(5, 0))
+        
+        ttk.Label(stats_grid, text="Timeouts:", font=('Arial', 8)).grid(row=2, column=0, sticky=tk.W)
+        self.timeouts_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'), foreground="orange")
+        self.timeouts_label.grid(row=2, column=1, sticky=tk.W, padx=(5, 0))
+        
+        ttk.Label(stats_grid, text="Errors:", font=('Arial', 8)).grid(row=3, column=0, sticky=tk.W)
+        self.errors_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'), foreground="red")
+        self.errors_label.grid(row=3, column=1, sticky=tk.W, padx=(5, 0))
+        
+        ttk.Button(stats_frame, text="Reset", command=self.reset_statistics, width=8).pack(pady=(4, 0))
         
         # === RIGHT COLUMN ===
         
-        # Statistics with improved horizontal layout
-        stats_frame = ttk.LabelFrame(right_column, text="Statistics", padding="10")
-        stats_frame.pack(fill=tk.X, pady=(0, 12))
+        # Create horizontal layout for Preview and Log side by side
+        preview_log_frame = tk.Frame(right_column, bg='#f0f0f0')
+        preview_log_frame.pack(fill=tk.BOTH, expand=True)
+        preview_log_frame.columnconfigure(0, weight=1)  # Preview column
+        preview_log_frame.columnconfigure(1, weight=1)  # Log column
         
-        # Horizontal layout to save space
-        stats_container = ttk.Frame(stats_frame)
-        stats_container.pack(fill=tk.X)
+        # Request Preview (left half of right column)
+        preview_frame = ttk.LabelFrame(preview_log_frame, text="Request Preview", padding="4")
+        preview_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 3))
         
-        # First row
-        first_row = ttk.Frame(stats_container)
-        first_row.pack(fill=tk.X, pady=(0, 6))
+        self.preview_text = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, height=25,
+                                                     font=("Courier", 8), bg='#FAFAFA')
+        self.preview_text.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(first_row, text="Requests:", font=('Arial', 10)).pack(side=tk.LEFT)
-        self.requests_label = ttk.Label(first_row, text="0", font=('Arial', 10, 'bold'))
-        self.requests_label.pack(side=tk.LEFT, padx=(8, 16))
+        # Configure tags with smaller fonts
+        self.preview_text.tag_config("header", font=("Courier", 8, "bold"), foreground="#0066CC")
+        self.preview_text.tag_config("field", font=("Courier", 8), foreground="#333333")
+        self.preview_text.tag_config("value", font=("Courier", 8, "bold"), foreground="#006600")
+        self.preview_text.tag_config("hex", font=("Courier", 8, "bold"), foreground="#9966CC")
         
-        ttk.Label(first_row, text="Responses:", font=('Arial', 10)).pack(side=tk.LEFT)
-        self.responses_label = ttk.Label(first_row, text="0", font=('Arial', 10, 'bold'))
-        self.responses_label.pack(side=tk.LEFT, padx=(8, 0))
+        # Communication Log (right half of right column)
+        log_frame = ttk.LabelFrame(preview_log_frame, text="Communication Log", padding="4")
+        log_frame.grid(row=0, column=1, sticky='nsew', padx=(3, 0))
         
-        # Second row
-        second_row = ttk.Frame(stats_container)
-        second_row.pack(fill=tk.X, pady=(0, 8))
-        
-        ttk.Label(second_row, text="Timeouts:", font=('Arial', 10)).pack(side=tk.LEFT)
-        self.timeouts_label = ttk.Label(second_row, text="0", font=('Arial', 10, 'bold'), foreground="orange")
-        self.timeouts_label.pack(side=tk.LEFT, padx=(8, 16))
-        
-        ttk.Label(second_row, text="Errors:", font=('Arial', 10)).pack(side=tk.LEFT)
-        self.errors_label = ttk.Label(second_row, text="0", font=('Arial', 10, 'bold'), foreground="red")
-        self.errors_label.pack(side=tk.LEFT, padx=(8, 16))
-        
-        ttk.Button(second_row, text="Reset", command=self.reset_statistics, width=8).pack(side=tk.RIGHT)
-        
-        # Communication Log with improved controls layout
-        log_frame = ttk.LabelFrame(right_column, text="Communication Log", padding="10")
-        log_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Log toolbar with better alignment
+        # Compact log toolbar
         log_toolbar = ttk.Frame(log_frame)
-        log_toolbar.pack(fill=tk.X, pady=(0, 8))
+        log_toolbar.pack(fill=tk.X, pady=(0, 2))
         
-        # Left side controls
-        left_controls = ttk.Frame(log_toolbar)
-        left_controls.pack(side=tk.LEFT)
+        ttk.Checkbutton(log_toolbar, text="Auto-scroll", variable=self.auto_scroll).pack(side=tk.LEFT)
+        ttk.Button(log_toolbar, text="Clear", command=self.clear_log, width=6).pack(side=tk.RIGHT)
         
-        ttk.Checkbutton(left_controls, text="Auto-scroll", variable=self.auto_scroll).pack(side=tk.LEFT)
-        
-        # Right side controls
-        right_controls = ttk.Frame(log_toolbar)
-        right_controls.pack(side=tk.RIGHT)
-        
-        ttk.Button(right_controls, text="Clear", command=self.clear_log, width=8).pack()
-        
-        # Log display with slightly larger font
-        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=20,
-                                                    font=("Courier", 10))
+        # Compact log display
+        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=25,
+                                                    font=("Courier", 8))
         self.log_display.pack(fill=tk.BOTH, expand=True)
         
-        # Configure log tags
-        self.log_display.tag_config("info", foreground="blue")
-        self.log_display.tag_config("request", foreground="green")
-        self.log_display.tag_config("response", foreground="purple")
-        self.log_display.tag_config("error", foreground="red")
-        self.log_display.tag_config("timeout", foreground="orange")
-        self.log_display.tag_config("system", foreground="gray")
+        # Configure log tags with smaller fonts
+        self.log_display.tag_config("info", foreground="blue", font=("Courier", 8))
+        self.log_display.tag_config("request", foreground="green", font=("Courier", 8))
+        self.log_display.tag_config("response", foreground="purple", font=("Courier", 8))
+        self.log_display.tag_config("error", foreground="red", font=("Courier", 8))
+        self.log_display.tag_config("timeout", foreground="orange", font=("Courier", 8))
+        self.log_display.tag_config("system", foreground="gray", font=("Courier", 8))
         
         # Initialize UI state
         self.update_operation_ui()
@@ -296,16 +276,16 @@ class ModbusTCPMasterTab:
         
         if operation == "read":
             # Show count, hide values
-            self.count_label.grid(row=0, column=3, sticky=tk.E, padx=(20, 10), pady=5)
-            self.count_spin.grid(row=0, column=4, pady=5, sticky=tk.W)
+            self.count_label.grid(row=1, column=0, sticky=tk.W, pady=2)
+            self.count_spin.grid(row=1, column=1, padx=(5, 0), pady=2, sticky=tk.W)
             self.values_label.grid_remove()
             self.values_entry.grid_remove()
         else:  # write
             # Hide count, show values
             self.count_label.grid_remove()
             self.count_spin.grid_remove()
-            self.values_label.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=5)
-            self.values_entry.grid(row=1, column=2, columnspan=3, sticky=tk.W+tk.E, pady=5)
+            self.values_label.grid(row=2, column=0, sticky=tk.W, pady=2)
+            self.values_entry.grid(row=2, column=1, columnspan=2, sticky=tk.EW, pady=2, padx=(5, 0))
     
     def update_unit_id(self):
         """Update unit ID"""
@@ -442,7 +422,7 @@ class ModbusTCPMasterTab:
         self.send_btn.config(state=tk.DISABLED)
         self.server_ip_entry.config(state=tk.NORMAL)
         self.server_port_spin.config(state=tk.NORMAL)
-        self.status_label.config(text="Disconnected", fg="red")
+        self.status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
         
         self.add_log("Disconnected", "info")
     
