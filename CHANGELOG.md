@@ -2,6 +2,65 @@
 
 All notable changes, development notes, and UI improvements for this project are documented in this file.
 
+## [4.1.0] - 2025-08-11 - Modbus TCP Enhancements & Bug Fixes
+
+### 🐛 Critical Bug Fixes
+- **Fixed WinError 10049 Issue**: Resolved "The requested address is not valid in its context" error
+  - Added automatic IP address detection for available network interfaces
+  - Replaced IP text entry with dropdown showing valid binding addresses
+  - Added special options: `0.0.0.0` (all interfaces) and `127.0.0.1` (localhost)
+  - Excludes APIPA addresses (169.254.x.x range) from selection
+  - Provides clear error messages for specific socket errors
+
+- **Fixed Master Tab Connection Stability**: Resolved immediate disconnection issues
+  - Implemented persistent receive worker thread for continuous connection
+  - Removed problematic connection lock that was causing race conditions
+  - Fixed receive thread lifecycle management
+  - Replaced Unicode characters that could cause encoding issues
+
+### 🚀 New Features
+- **Enhanced Test Pattern**: Extended test pattern with realistic power supply controller registers
+  - 187 registers populated with meaningful test data
+  - Serial number, part number, and firmware version fields
+  - Channel measurements (current, voltage, state) for 10 channels
+  - Calibration data with slopes and offsets
+  - System counters and status registers
+  - Comprehensive register map for testing real-world scenarios
+
+- **Advanced Connection Diagnostics**: Added detailed logging for connection troubleshooting
+  - Debug messages showing connection lifecycle
+  - Hex dump of received data for protocol identification
+  - Detailed disconnect reasons (timeout, reset, graceful close)
+  - Request/response counting for connection analysis
+  - Extended initial timeout (5 seconds) for slow clients
+
+### 🔧 Technical Improvements
+- **IP Address Management**:
+  ```python
+  def get_available_ips() -> List[str]:
+      # Returns ["0.0.0.0", "127.0.0.1"] plus all valid network IPs
+      # Automatically excludes APIPA addresses
+  ```
+
+- **Socket Error Handling**: Enhanced error messages for common socket errors
+  - WSAEADDRNOTAVAIL (10049): Clear guidance on available IPs
+  - WSAEADDRINUSE (10048): Port already in use notification
+  - WSAEACCES (10013): Permission denied for privileged ports
+  - WSAECONNRESET (10054): Client forcibly closed connection
+  - WSAECONNABORTED (10053): Connection aborted by client
+
+- **Connection Lifecycle Management**:
+  - Proper thread cleanup on disconnect
+  - Graceful handling of both short-lived and persistent connections
+  - Support for connection-per-transaction Modbus clients
+  - Improved compatibility with external Modbus master applications
+
+### 📊 Testing Support
+- **Comprehensive Test Scripts**:
+  - `test_server_fix.py`: Validates IP binding and error handling
+  - `test_connection.py`: Tests connection stability and persistence
+  - Support for various Modbus client behaviors (polling, persistent, transactional)
+
 ## [4.0.0] - 2025-08-10 - Modbus TCP Implementation & 4-Column Responsive Layout
 
 ### 🚀 Major New Features

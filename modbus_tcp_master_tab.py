@@ -43,6 +43,7 @@ class ModbusTCPMasterTab:
         self.client_socket: Optional[socket.socket] = None
         self.is_connected = False
         self.connection_lock = threading.Lock()
+        self.receive_thread: Optional[threading.Thread] = None
         
         # Modbus state
         self.transaction_id = 1
@@ -128,7 +129,7 @@ class ModbusTCPMasterTab:
                                     bg='#f0f0f0', fg='red', font=('Arial', 9, 'bold'))
         self.status_label.pack(side=tk.LEFT)
         
-        self.status_indicator = tk.Label(conn_control_frame, text="❌", 
+        self.status_indicator = tk.Label(conn_control_frame, text="[X]", 
                                     bg='#f0f0f0', fg='red', font=('Arial', 12, 'bold'))
         self.status_indicator.pack(side=tk.LEFT, padx=(5, 0))
         
@@ -386,28 +387,27 @@ class ModbusTCPMasterTab:
             return
         
         try:
-            with self.connection_lock:
-                # Create socket and connect
-                self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.client_socket.settimeout(5.0)  # Connection timeout
-                self.client_socket.connect((server_ip, server_port))
-                
-                self.is_connected = True
-                
-                # Update UI state with enhanced styling
-                self.connect_btn.config(state=tk.DISABLED)
-                self.disconnect_btn.config(state=tk.NORMAL)
-                self.send_btn.config(state=tk.NORMAL)
-                self.server_ip_entry.config(state=tk.DISABLED)
-                self.server_port_spin.config(state=tk.DISABLED)
-                self.status_label.config(text="Connected", fg=self.COLORS['fg_connected'])
-                self.status_indicator.config(fg=self.COLORS['fg_connected'])
-                
-                self.add_log(f"✅ Connected to {server_ip}:{server_port}", "info")
-                
-                # Start receive thread
-                receive_thread = threading.Thread(target=self.receive_response, daemon=True)
-                receive_thread.start()
+            # Create socket and connect
+            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.client_socket.settimeout(5.0)  # Connection timeout
+            self.client_socket.connect((server_ip, server_port))
+            
+            self.is_connected = True
+            
+            # Update UI state with enhanced styling
+            self.connect_btn.config(state=tk.DISABLED)
+            self.disconnect_btn.config(state=tk.NORMAL)
+            self.send_btn.config(state=tk.NORMAL)
+            self.server_ip_entry.config(state=tk.DISABLED)
+            self.server_port_spin.config(state=tk.DISABLED)
+            self.status_label.config(text="Connected", fg=self.COLORS['fg_connected'])
+            self.status_indicator.config(fg=self.COLORS['fg_connected'])
+            
+            self.add_log(f"[CONNECTED] Connected to {server_ip}:{server_port}", "info")
+            
+            # Start persistent receive thread
+            self.receive_thread = threading.Thread(target=self.receive_worker, daemon=True)
+            self.receive_thread.start()
                 
         except Exception as e:
             self.is_connected = False
@@ -420,33 +420,32 @@ class ModbusTCPMasterTab:
             
             error_msg = f"Failed to connect to {server_ip}:{server_port}: {str(e)}"
             messagebox.showerror("Connection Error", error_msg)
-            self.add_log(f"❌ {error_msg}", "error")
+            self.add_log(f"[ERROR] {error_msg}", "error")
     
     def disconnect_from_server(self):
         """Disconnect from server"""
-        with self.connection_lock:
-            self.is_connected = False
-            
-            if self.client_socket:
-                try:
-                    self.client_socket.close()
-                except:
-                    pass
-                self.client_socket = None
-            
-            # Clear pending requests
-            self.pending_requests.clear()
-            
-            # Update UI state with enhanced styling
-            self.connect_btn.config(state=tk.NORMAL)
-            self.disconnect_btn.config(state=tk.DISABLED)
-            self.send_btn.config(state=tk.DISABLED)
-            self.server_ip_entry.config(state=tk.NORMAL)
-            self.server_port_spin.config(state=tk.NORMAL)
-            self.status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
-            self.status_indicator.config(fg=self.COLORS['fg_disconnected'])
-            
-            self.add_log("🔌 Disconnected", "info")
+        self.is_connected = False
+        
+        if self.client_socket:
+            try:
+                self.client_socket.close()
+            except:
+                pass
+            self.client_socket = None
+        
+        # Clear pending requests
+        self.pending_requests.clear()
+        
+        # Update UI state with enhanced styling
+        self.connect_btn.config(state=tk.NORMAL)
+        self.disconnect_btn.config(state=tk.DISABLED)
+        self.send_btn.config(state=tk.DISABLED)
+        self.server_ip_entry.config(state=tk.NORMAL)
+        self.server_port_spin.config(state=tk.NORMAL)
+        self.status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
+        self.status_indicator.config(fg=self.COLORS['fg_disconnected'])
+        
+        self.add_log("[DISCONNECTED] Disconnected from server", "info")
     
     def send_request(self):
         """Send Modbus request"""
@@ -502,9 +501,6 @@ class ModbusTCPMasterTab:
             self.frame.after(self.response_timeout, 
                            lambda tid=self.transaction_id: self.check_timeout(tid))
             
-            # Start response listener if not already running
-            threading.Thread(target=self.receive_response, daemon=True).start()
-            
             # Increment transaction ID
             self.transaction_id = (self.transaction_id % 65535) + 1
             self.update_preview()
@@ -515,31 +511,44 @@ class ModbusTCPMasterTab:
             messagebox.showerror("Error", f"Failed to send request: {str(e)}")
             self.disconnect_from_server()
     
-    def receive_response(self):
-        """Receive and process response (runs in thread)"""
-        if not self.is_connected or not self.client_socket:
-            return
+    def receive_worker(self):
+        """Persistent receive worker thread"""
+        self.frame.after(0, lambda: self.add_log("[DEBUG] Receive worker started", "system"))
         
-        try:
-            # Set short timeout for receiving
-            self.client_socket.settimeout(self.response_timeout / 1000.0)
-            
-            # Receive response (minimum 8 bytes for MBAP header + function)
-            data = self.client_socket.recv(1024)
-            if not data:
-                return
-            
-            # Parse response
-            response = ModbusTCPFrame.from_bytes(data)
-            if response:
-                self.handle_response(response)
-            
-        except socket.timeout:
-            # Timeout handled by timeout checker
-            pass
-        except Exception as e:
-            if self.is_connected:
-                self.frame.after(0, lambda: self.add_log(f"Receive error: {str(e)}", "error"))
+        while self.is_connected and self.client_socket:
+            try:
+                # Set short timeout for receiving to allow checking is_connected
+                self.client_socket.settimeout(1.0)
+                
+                # Receive response (minimum 8 bytes for MBAP header + function)
+                data = self.client_socket.recv(1024)
+                if not data:
+                    # Connection closed by server
+                    if self.is_connected:
+                        self.frame.after(0, lambda: self.add_log("Connection closed by server", "error"))
+                        self.frame.after(0, self.disconnect_from_server)
+                    break
+                
+                # Parse response
+                response = ModbusTCPFrame.from_bytes(data)
+                if response:
+                    self.handle_response(response)
+                
+            except socket.timeout:
+                # Normal timeout, continue loop
+                continue
+            except ConnectionResetError as e:
+                if self.is_connected:
+                    self.frame.after(0, lambda: self.add_log(f"Connection reset by server", "error"))
+                    self.frame.after(0, self.disconnect_from_server)
+                break
+            except Exception as e:
+                if self.is_connected:
+                    self.frame.after(0, lambda: self.add_log(f"Receive error: {str(e)} (type: {type(e).__name__})", "error"))
+                    self.frame.after(0, self.disconnect_from_server)
+                break
+        
+        self.frame.after(0, lambda: self.add_log("[DEBUG] Receive worker stopped", "system"))
     
     def handle_response(self, response: ModbusTCPFrame):
         """Handle received response (thread-safe)"""

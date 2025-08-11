@@ -74,6 +74,32 @@ class ModbusTCPSlaveTab:
         self.refresh_register_view()
         self.update_statistics()
     
+    def get_available_ips(self) -> List[str]:
+        """Get list of available IP addresses for binding"""
+        ips = ["0.0.0.0", "127.0.0.1"]  # Default options
+        
+        try:
+            # Get all network interfaces
+            hostname = socket.gethostname()
+            # Get all IPs associated with the hostname
+            host_ips = socket.gethostbyname_ex(hostname)[2]
+            
+            # Add unique IPs to the list
+            for ip in host_ips:
+                if ip not in ips and not ip.startswith("169.254"):  # Exclude APIPA addresses
+                    ips.append(ip)
+            
+            # Also try to get all interface IPs using socket
+            for info in socket.getaddrinfo(hostname, None):
+                if info[0] == socket.AF_INET:  # IPv4 only
+                    ip = info[4][0]
+                    if ip not in ips and not ip.startswith("169.254"):
+                        ips.append(ip)
+        except:
+            pass  # If we can't get IPs, use defaults
+        
+        return ips
+    
     def create_widgets(self):
         """Create Modbus TCP Slave tab UI elements"""
         # Main container with consistent styling
@@ -120,12 +146,16 @@ class ModbusTCPSlaveTab:
         row1 = tk.Frame(server_content, bg=self.COLORS['bg_server'])
         row1.pack(fill=tk.X, pady=(0, 4))
         
-        # IP field - more compact
+        # IP field - with dropdown of available IPs
         tk.Label(row1, text="IP:", font=('Arial', 10), bg=self.COLORS['bg_server'], 
                 width=3, anchor='e').pack(side=tk.LEFT)
-        self.ip_var = tk.StringVar(value="127.0.0.1")
-        self.ip_entry = ttk.Entry(row1, textvariable=self.ip_var, width=10, font=('Arial', 10))
-        self.ip_entry.pack(side=tk.LEFT, padx=(2, 8))
+        
+        # Get available IP addresses
+        available_ips = self.get_available_ips()
+        self.ip_var = tk.StringVar(value="0.0.0.0")  # Default to all interfaces
+        self.ip_combo = ttk.Combobox(row1, textvariable=self.ip_var, 
+                                     values=available_ips, width=12, font=('Arial', 10))
+        self.ip_combo.pack(side=tk.LEFT, padx=(2, 8))
         
         # Port field - more compact
         tk.Label(row1, text="Port:", font=('Arial', 10), bg=self.COLORS['bg_server'], 
@@ -496,12 +526,28 @@ class ModbusTCPSlaveTab:
             # Update UI
             self.start_btn.config(state=tk.DISABLED)
             self.stop_btn.config(state=tk.NORMAL)
-            self.ip_entry.config(state=tk.DISABLED)
+            self.ip_combo.config(state=tk.DISABLED)
             self.port_spin.config(state=tk.DISABLED)
             self.status_label.config(text="Server Running", fg=self.COLORS['fg_running'])
             
             self.add_log(f"Server started on {ip}:{port}", "info")
             
+        except OSError as e:
+            error_msg = str(e)
+            if e.errno == 10049:  # WSAEADDRNOTAVAIL
+                error_msg = (f"Cannot bind to IP address {ip}.\n\n"
+                           "This IP is not available on your system.\n"
+                           "Please select one of the available IPs from the dropdown:\n"
+                           "• 0.0.0.0 - Listen on all interfaces\n"
+                           "• 127.0.0.1 - Listen on localhost only\n"
+                           "• Or one of your actual network IPs")
+            elif e.errno == 10048:  # WSAEADDRINUSE
+                error_msg = f"Port {port} is already in use.\nPlease choose a different port."
+            elif e.errno == 10013:  # WSAEACCES
+                error_msg = f"Permission denied for port {port}.\nTry a port number above 1024."
+            
+            messagebox.showerror("Server Error", error_msg)
+            self.stop_server()
         except Exception as e:
             messagebox.showerror("Server Error", f"Failed to start server: {str(e)}")
             self.stop_server()
@@ -530,7 +576,7 @@ class ModbusTCPSlaveTab:
         # Update UI
         self.start_btn.config(state=tk.NORMAL)
         self.stop_btn.config(state=tk.DISABLED)
-        self.ip_entry.config(state=tk.NORMAL)
+        self.ip_combo.config(state=tk.NORMAL)
         self.port_spin.config(state=tk.NORMAL)
         self.status_label.config(text="Server Stopped", fg=self.COLORS['fg_stopped'])
         self.connection_label.config(text="No client connected", fg=self.COLORS['fg_disconnected'])
@@ -573,23 +619,71 @@ class ModbusTCPSlaveTab:
     
     def client_worker(self, client_socket: socket.socket, client_address: Tuple[str, int]):
         """Handle client connection"""
+        bytes_received = 0
+        requests_handled = 0
+        disconnect_reason = "Unknown"
+        
         try:
+            self.frame.after(0, lambda: self.add_log(f"[DEBUG] Client handler started for {client_address[0]}:{client_address[1]}", "system"))
+            
+            # Wait longer initially to see if client sends data
+            initial_timeout = 5.0  # 5 seconds for first data
+            client_socket.settimeout(initial_timeout)
+            self.frame.after(0, lambda: self.add_log(f"[DEBUG] Waiting for client data (timeout: {initial_timeout}s)...", "system"))
+            
             while self.is_running and self.is_connected:
-                client_socket.settimeout(1.0)
-                data = client_socket.recv(1024)
+                try:
+                    data = client_socket.recv(1024)
+                except socket.timeout:
+                    if bytes_received == 0:
+                        # First timeout with no data
+                        disconnect_reason = f"Client connected but sent no data within {initial_timeout}s (possible port scan or config issue)"
+                        break
+                    else:
+                        # Subsequent timeout after receiving data is normal
+                        client_socket.settimeout(1.0)  # Shorter timeout for subsequent reads
+                        continue
                 
                 if not data:
+                    disconnect_reason = "Client closed connection gracefully"
                     break
+                
+                bytes_received += len(data)
+                # Log hex dump of first few bytes to identify protocol
+                hex_preview = ' '.join(f'{b:02X}' for b in data[:20])
+                if len(data) > 20:
+                    hex_preview += '...'
+                self.frame.after(0, lambda br=bytes_received, hp=hex_preview: self.add_log(
+                    f"[DEBUG] Received {len(data)} bytes (total: {br}): {hp}", "system"))
                 
                 # Process request
                 response_data = self.process_modbus_request(data)
                 if response_data:
                     client_socket.send(response_data)
+                    requests_handled += 1
+                    self.frame.after(0, lambda rh=requests_handled: self.add_log(
+                        f"[DEBUG] Sent response #{rh} ({len(response_data)} bytes)", "system"))
                 
         except socket.timeout:
-            # Normal timeout during shutdown
-            pass
+            # This is normal - we use timeout to check is_running flag
+            if bytes_received == 0:
+                disconnect_reason = "Client connected but sent no data (possible port scan)"
+            else:
+                # Continue normally
+                pass
+        except ConnectionResetError:
+            disconnect_reason = "Connection reset by client"
+        except ConnectionAbortedError:
+            disconnect_reason = "Connection aborted by client"
+        except OSError as e:
+            if e.errno == 10054:  # WSAECONNRESET
+                disconnect_reason = "Client forcibly closed connection"
+            elif e.errno == 10053:  # WSAECONNABORTED
+                disconnect_reason = "Client aborted connection"
+            else:
+                disconnect_reason = f"Socket error: {e}"
         except Exception as e:
+            disconnect_reason = f"Unexpected error: {str(e)}"
             if self.is_running:
                 self.frame.after(0, lambda: self.add_log(f"Client error: {str(e)}", "error"))
         finally:
@@ -603,9 +697,10 @@ class ModbusTCPSlaveTab:
                     self.client_socket = None
                     self.is_connected = False
             
+            # Log detailed disconnect info
             self.frame.after(0, lambda: self.connection_label.config(text="No client connected", fg=self.COLORS['fg_disconnected']))
-            self.frame.after(0, lambda: self.add_log(
-                f"Client disconnected: {client_address[0]}:{client_address[1]}", "info"))
+            self.frame.after(0, lambda dr=disconnect_reason, rh=requests_handled: self.add_log(
+                f"Client disconnected: {client_address[0]}:{client_address[1]} - Reason: {dr} (Handled {rh} requests)", "info"))
     
     def process_modbus_request(self, data: bytes) -> Optional[bytes]:
         """Process Modbus TCP request"""
@@ -734,11 +829,127 @@ class ModbusTCPSlaveTab:
             self.add_log("All registers cleared", "system")
     
     def load_test_pattern(self):
-        """Load test pattern"""
-        for i in range(20):
-            self.register_map.set_register(i, i * 0x1111)
+        """Load test pattern with realistic power supply controller values"""
+        # Clear all registers first
+        for i in range(1000):
+            self.register_map.set_register(i, 0)
+        
+        # Serial Number (4 registers)
+        self.register_map.set_register(0x00, 0x1234)  # SERIAL_NUMBER_1
+        self.register_map.set_register(0x01, 0x5678)  # SERIAL_NUMBER_2
+        self.register_map.set_register(0x02, 0x9ABC)  # SERIAL_NUMBER_3
+        self.register_map.set_register(0x03, 0xDEF0)  # SERIAL_NUMBER_4
+        
+        # Part Number (3 registers)
+        self.register_map.set_register(0x04, 0x5000)  # PART_NUMBER_1 (P500)
+        self.register_map.set_register(0x05, 0x0102)  # PART_NUMBER_2
+        self.register_map.set_register(0x06, 0x0001)  # PART_NUMBER_3
+        
+        # Firmware Version (6 registers)
+        self.register_map.set_register(0x07, 0x0001)  # FIRMWARE_VERSION_1 (Major)
+        self.register_map.set_register(0x08, 0x0002)  # FIRMWARE_VERSION_2 (Minor)
+        self.register_map.set_register(0x09, 0x0003)  # FIRMWARE_VERSION_3 (Patch)
+        self.register_map.set_register(0x0A, 0x2024)  # FIRMWARE_VERSION_4 (Year)
+        self.register_map.set_register(0x0B, 0x0811)  # FIRMWARE_VERSION_5 (Month/Day)
+        self.register_map.set_register(0x0C, 0x1234)  # FIRMWARE_VERSION_6 (Build)
+        
+        # Channel Max Current (10 channels, 13-22)
+        for ch in range(10):
+            # Max current in mA (e.g., 5000 mA = 5A)
+            self.register_map.set_register(0x0D + ch, 5000)
+        
+        # Housing Temperature (register 23)
+        self.register_map.set_register(0x17, 350)  # 35.0°C (scaled by 10)
+        
+        # Channel 0A and 0B Measured Current
+        self.register_map.set_register(0x18, 1200)  # CHANNEL_0A: 1.2A
+        self.register_map.set_register(0x19, 1300)  # CHANNEL_0B: 1.3A
+        
+        # Channels 1-10 Measured Values (Current, Voltage, State)
+        for ch in range(10):
+            base_addr = 0x1A + (ch * 3)
+            # Measured current (mA)
+            self.register_map.set_register(base_addr, 1000 + ch * 100)  # 1.0A to 1.9A
+            # Measured voltage (mV)
+            self.register_map.set_register(base_addr + 1, 12000 + ch * 100)  # 12.0V to 12.9V
+            # Channel state (0=OFF, 1=ON, 2=FAULT, 3=OVERCURRENT)
+            self.register_map.set_register(base_addr + 2, 1 if ch < 5 else 0)  # First 5 ON
+        
+        # Diagnostic Currents (registers 56-65)
+        for i in range(10):
+            self.register_map.set_register(0x38 + i, 500 + i * 50)  # 0.5A to 0.95A
+        
+        # Channel Current Set Points (registers 66-75)
+        for ch in range(10):
+            self.register_map.set_register(0x42 + ch, 2000 + ch * 100)  # 2.0A to 2.9A
+        
+        # Channel Enable flags (registers 76-85)
+        for ch in range(10):
+            # Enable first 5 channels
+            self.register_map.set_register(0x4C + ch, 1 if ch < 5 else 0)
+        
+        # Initialize PS command
+        self.register_map.set_register(0x56, 0)  # INITIALIZE_PS
+        
+        # Calibration commands
+        self.register_map.set_register(0x57, 0)  # SET_CAL_COMMAND_STMA
+        self.register_map.set_register(0x58, 0)  # SET_CAL_COMMAND_STMB
+        
+        # Error codes
+        self.register_map.set_register(0x59, 0)  # ERROR_CODE_GLOBAL (No errors)
+        self.register_map.set_register(0x5A, 0)  # ERROR_CODE_A
+        self.register_map.set_register(0x5B, 0)  # ERROR_CODE_B
+        
+        # Configuration and status registers
+        self.register_map.set_register(0x5C, 0x0001)  # CONFIGURATION_INFO_MODECONTROL_STM
+        self.register_map.set_register(0x5D, 0)  # STORE_LOAD_AND_RESTORE
+        
+        # Password (register 107)
+        self.register_map.set_register(0x6B, 0x0000)  # PASSWORD (unlocked)
+        
+        # Warning and Fault flags
+        self.register_map.set_register(0x6C, 0)  # WARNING_FLAGS_ACTIVE_STMA
+        self.register_map.set_register(0x6E, 0)  # FAULT_FLAGS_ACTIVE_STMA
+        self.register_map.set_register(0x70, 0)  # WARNING_FLAGS_ACTIVE_STMB
+        self.register_map.set_register(0x72, 0)  # FAULT_FLAGS_ACTIVE_STMB
+        
+        # Counters and timers
+        self.register_map.set_register(0x74, 0)  # PACKET_FAIL_ERROR_COUNTER
+        self.register_map.set_register(0x75, 42)  # NUMBER_OF_POWER_CYCLES
+        self.register_map.set_register(0x76, 3600)  # TIME_SINCE_ON (seconds)
+        self.register_map.set_register(0x77, 86400)  # TOTAL_RUNNING_TIME (seconds)
+        self.register_map.set_register(0x78, 0)  # DISABLE_TIMEOUT
+        
+        # Channel and Data Point selectors
+        self.register_map.set_register(0x79, 1)  # CHANNEL_SELECTOR
+        self.register_map.set_register(0x7A, 0)  # DATA_POINT_SELECTOR
+        self.register_map.set_register(0x7B, 0)  # DATA_POINT_X
+        self.register_map.set_register(0x7C, 0)  # DATA_POINT_Y
+        
+        # Calibration slopes (registers 125-144) - Example values
+        for i in range(10):
+            slope_base = 0x7D + (i * 2)
+            # Slope as fixed point (1.0 = 0x4000)
+            self.register_map.set_register(slope_base, 0x4000)  # Low word
+            self.register_map.set_register(slope_base + 1, 0x0000)  # High word
+        
+        # Calibration offsets (registers 145-164) - Example values
+        for i in range(10):
+            offset_base = 0x91 + (i * 2)
+            # Small offset values
+            self.register_map.set_register(offset_base, 10 + i)  # Low word
+            self.register_map.set_register(offset_base + 1, 0x0000)  # High word
+        
+        # Calibration points X (registers 165-175)
+        for i in range(11):
+            self.register_map.set_register(0xA5 + i, i * 1000)  # 0, 1000, 2000...
+        
+        # Calibration points Y (registers 176-186)
+        for i in range(11):
+            self.register_map.set_register(0xB0 + i, i * 1000)  # Linear response
+        
         self.refresh_register_view()
-        self.add_log("Test pattern loaded", "system")
+        self.add_log("Power supply test pattern loaded (187 registers)", "system")
     
     def export_registers_csv(self):
         """Export registers to CSV"""

@@ -222,6 +222,22 @@ pip install -r requirements.txt --upgrade
 - Update pip: `pip install --upgrade pip`
 - Use specific Python version: `python3.8 -m venv venv`
 
+### Modbus TCP Troubleshooting
+
+**WinError 10049 - "The requested address is not valid in its context":**
+- This occurs when trying to bind to an IP address not assigned to your computer
+- Use the IP dropdown to select a valid address:
+  - `0.0.0.0` - Bind to all interfaces (recommended)
+  - `127.0.0.1` - Bind to localhost only
+  - Or select one of your actual network IPs
+- Avoid APIPA addresses (169.254.x.x range)
+
+**Client connects then immediately disconnects:**
+- This is normal for many Modbus clients using connection-per-transaction mode
+- Check Statistics section for request/response counts to verify communication
+- Use Debug logging to see detailed connection information
+- External Modbus masters often connect, send request, receive response, then disconnect
+
 ### Platform-Specific Requirements
 
 **Linux**
@@ -329,12 +345,16 @@ Industry-standard Modbus TCP/IP implementation focusing on holding register oper
 
 #### Slave Configuration
 1. Navigate to "Modbus TCP Slave" tab
-2. Set IP address and port (default: 127.0.0.1:502)
-3. Configure Unit ID (1-247)
-4. Click "Start Server"
-5. Manage registers:
+2. Select IP address from dropdown:
+   - `0.0.0.0` - Listen on all network interfaces (recommended for testing)
+   - `127.0.0.1` - Listen on localhost only
+   - Or select one of your actual network IPs
+3. Set port (default: 502)
+4. Configure Unit ID (1-247)
+5. Click "Start Server"
+6. Manage registers:
    - Set individual values
-   - Load test patterns
+   - Load test patterns (187 realistic power supply registers)
    - Export to CSV
 
 #### Master Configuration
@@ -837,6 +857,8 @@ graph BT
 - Confirm network connectivity
 - Check firewall settings
 - Verify Unit ID match
+- Use IP dropdown to select valid binding address
+- Check debug messages in Communication Log
 - Test with known good client/server
 
 ### Debug Mode
@@ -874,4 +896,4 @@ For issues or questions:
 
 ---
 
-**Version 2.1** | **Last Updated: 2025**
+**Version 4.1** | **Last Updated: August 2025**
