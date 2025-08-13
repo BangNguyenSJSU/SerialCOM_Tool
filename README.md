@@ -883,6 +883,170 @@ logging.basicConfig(level=logging.DEBUG)
 4. Ensure code quality
 5. Submit pull request
 
+## Building Standalone Windows Executable
+
+This section explains how to create a standalone `.exe` file that runs on any Windows computer without requiring Python installation.
+
+### What is a Standalone Executable?
+
+A standalone executable (`.exe` file) packages your Python application with all its dependencies into a single file that can run on any Windows computer. Users don't need to install Python, libraries, or any other software - they just double-click the `.exe` file to run your application.
+
+### Prerequisites for Building
+
+Before building, ensure you have:
+1. **Python installed** on your development computer (the one you're using to build)
+2. **The application working** when you run `python serial_gui.py`
+3. **All dependencies installed** via `pip install -r requirements.txt`
+
+### Step-by-Step Build Instructions
+
+#### Step 1: Verify Your Python Environment
+
+Open Command Prompt or PowerShell and check that Python is installed:
+
+```bash
+python --version
+```
+
+You should see something like `Python 3.12.10`. If you get an error, install Python first from [python.org](https://python.org).
+
+#### Step 2: Install PyInstaller
+
+PyInstaller is the tool that creates the executable. Install it with pip:
+
+```bash
+pip install pyinstaller
+```
+
+This downloads and installs PyInstaller and its dependencies. You should see "Successfully installed pyinstaller" when complete.
+
+#### Step 3: Navigate to Your Project Folder
+
+Use the `cd` command to go to your SerialCOM_Tool folder:
+
+```bash
+cd C:\SerialCOM_Tool
+```
+
+Make sure you're in the folder containing `serial_gui.py`.
+
+#### Step 4: Build the Executable
+
+Run this command to create the standalone executable:
+
+```bash
+pyinstaller --onefile --windowed --name "SerialCOM_Tool" --add-data "image/*;image" --hidden-import serial --hidden-import serial.tools --hidden-import serial.tools.list_ports --hidden-import serial.tools.list_ports_windows serial_gui.py
+```
+
+**What each option means:**
+- `--onefile`: Creates a single .exe file instead of a folder with many files
+- `--windowed`: Runs without showing a console window (GUI only)
+- `--name "SerialCOM_Tool"`: Names the executable SerialCOM_Tool.exe
+- `--add-data "image/*;image"`: Includes the image folder with icons
+- `--hidden-import serial...`: Ensures PySerial modules are included
+- `serial_gui.py`: The main Python file to convert
+
+#### Step 5: Wait for Build to Complete
+
+The build process takes 1-2 minutes. You'll see many lines of output ending with:
+```
+Building EXE from EXE-00.toc completed successfully.
+```
+
+#### Step 6: Find Your Executable
+
+After building, you'll have these new folders:
+- `build/` - Temporary build files (you can delete this)
+- `dist/` - **Contains your SerialCOM_Tool.exe file**
+- `SerialCOM_Tool.spec` - Build configuration (keep for rebuilding)
+
+Your executable is in the `dist` folder:
+```
+C:\SerialCOM_Tool\dist\SerialCOM_Tool.exe
+```
+
+#### Step 7: Test the Executable
+
+1. Navigate to the `dist` folder
+2. Double-click `SerialCOM_Tool.exe`
+3. The application should start without any Python installation
+
+### Distributing Your Application
+
+To share your application with others:
+
+1. **Copy the single file** `dist\SerialCOM_Tool.exe` to any Windows computer
+2. **No installation needed** - users just double-click to run
+3. **File size** is approximately 10-12 MB (includes Python and all libraries)
+
+### Troubleshooting Build Issues
+
+#### "Module not found" error when running the .exe
+
+If the executable shows errors about missing modules:
+
+1. Make sure you installed all dependencies first:
+   ```bash
+   pip install pyserial
+   ```
+
+2. Rebuild with explicit imports:
+   ```bash
+   pyinstaller --onefile --windowed --hidden-import serial --hidden-import tkinter serial_gui.py
+   ```
+
+#### Antivirus warnings
+
+Some antivirus software may flag PyInstaller executables. This is a false positive because:
+- PyInstaller packages code in an unusual way
+- The executable is unsigned
+
+Solutions:
+- Add an exception in your antivirus
+- Sign the executable with a code signing certificate (advanced)
+
+#### Executable is too large
+
+The single-file executable includes the entire Python interpreter. To reduce size:
+- Use `--onedir` instead of `--onefile` (creates a folder with multiple files)
+- Use UPX compression (add `--upx-dir` option if UPX is installed)
+
+### Rebuilding After Changes
+
+When you modify your Python code:
+
+1. Make your code changes
+2. Test with `python serial_gui.py`
+3. Rebuild the executable using the same PyInstaller command
+4. The new .exe replaces the old one in the `dist` folder
+
+### Advanced: Using a Spec File
+
+For complex builds, you can use a spec file for consistent builds:
+
+1. PyInstaller creates `SerialCOM_Tool.spec` automatically
+2. Edit this file to customize the build
+3. Rebuild using: `pyinstaller SerialCOM_Tool.spec`
+
+### What Gets Included in the Executable
+
+The standalone executable contains:
+- **Python interpreter** (about 5 MB)
+- **Your application code** (all .py files)
+- **Python standard library** (tkinter, threading, etc.)
+- **Third-party libraries** (pyserial)
+- **Resource files** (images in the image/ folder)
+- **Windows runtime files** (required DLLs)
+
+Everything is compressed into a single file that self-extracts when run.
+
+### Platform Notes
+
+- **This executable only works on Windows** (for macOS/Linux, build on those platforms)
+- **Windows version compatibility**: Works on Windows 7 and later
+- **No administrator rights needed** to run the executable
+- **Portable**: Can run from USB drive or network share
+
 ## License
 
 MIT License - See LICENSE file for details
@@ -896,4 +1060,4 @@ For issues or questions:
 
 ---
 
-**Version 4.1** | **Last Updated: August 2025**
+**Version 4.2** | **Last Updated: January 2025**
