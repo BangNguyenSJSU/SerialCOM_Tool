@@ -2,6 +2,103 @@
 
 All notable changes, development notes, and UI improvements for this project are documented in this file.
 
+## [4.2.0] - 2025-01-13 - Enhanced Debug Messages & Visual Improvements
+
+### 🎨 Major Visual & Debug Enhancements
+
+#### **Enhanced Debug Messages - Complete Overhaul**
+- **Slave Tab (Server) - Response Decoding**:
+  - **Before**: `[DEBUG] Sent response #98 (11 bytes)`
+  - **After**: `[DEBUG] Response #98: Read Response (5 regs): [0]=0x03E8 [1]=0x2EE0 [2]=0x0001 [3]=0x044C [4]=0x2F44`
+  - **All register values displayed** with indexed format `[index]=value`
+  - **Multi-line format** for large responses (>8 registers)
+  - **Write responses enhanced**: `Write Response - Wrote 5 registers from 0x0042 to 0x0046`
+
+- **Master Tab (Client) - Complete Debug System**:
+  - **TX Request Decoding**: Shows all register values for write requests with indices
+    - `Write Request - 5 registers from 0x0042: [0]=0x1111 [1]=0x2222 [2]=0x3333 [3]=0x4444 [4]=0x5555`
+  - **RX Response Decoding**: Full register display with timing information
+    - `[timestamp] RX Response (TID: 0001, Time: 5.2ms): Read Response (10 regs): [0]=0x03E8 [1]=0x2EE0...`
+  - **Enhanced Exception Handling**: Named exceptions with codes
+    - `Exception Response - ILLEGAL_DATA_ADDRESS (0x02)`
+
+#### **Advanced Color Scheme & Typography**
+- **Debug Messages**: Orange (#FF6600) on light yellow background (#FFF8E0)
+- **Request Messages**: Bright Green (#00AA00) Bold
+- **Response Messages**: Bright Purple (#AA00AA) Bold
+- **Error Messages**: Bright Red (#CC0000) Bold
+- **Font Upgrade**: All communication logs use Consolas monospace font for better alignment
+
+#### **Master Tab - Request Preview Enhancements**
+- **Headers**: Blue (#0066CC) on light blue background (#F0F8FF)
+- **Field Names**: Dark Gray (#2E2E2E) for labels
+- **Values**: Green (#008000) on light green background (#F0FFF0)
+- **Hex Values**: Purple (#8B008B) on light purple background (#FFF0FF)
+- **Addresses**: ⭐ **NEW** Orange (#FF6600) on light yellow background (#FFF8E0)
+- **Font Upgrade**: Courier 8pt → Consolas 9pt for better readability
+
+### 🔧 Technical Improvements
+
+#### **Auto-Loading Test Pattern**
+- **New Checkbox**: "Auto-load test pattern on server start" (enabled by default)
+- **Automatic Population**: Channel registers (0x001A+) now populate automatically when server starts
+- **Prevents Zero Values**: Eliminates issue where all registers showed 0 until manual pattern load
+- **Background Loading**: Test pattern loads with info message in communication log
+
+#### **Comprehensive Decoding Functions**
+```python
+# New decoding methods for both Master and Slave
+def decode_request_for_debug(self, request_data: bytes) -> str:
+    # Decodes TX requests with full register details
+    
+def decode_response_for_debug(self, response_data: bytes) -> str:
+    # Decodes RX responses with indexed register values
+```
+
+#### **Big-Endian Verification System**
+- **Created comprehensive verification**: `verify_endianness.py`
+- **Confirmed**: Application uses Big-Endian (Network Byte Order) throughout
+- **All protocols**: Modbus TCP and Custom Protocol both use `struct.pack('>...')`
+- **Cross-platform consistency**: Same byte order regardless of system architecture
+
+### 📊 Debug Message Examples
+
+#### **Before vs After - Slave Responses**
+```
+Before: [DEBUG] Sent response #317 (43 bytes)
+After:  [DEBUG] Response #317: Read Response (43 registers):
+          [0]=0x015E [1]=0x04B0 [2]=0x0514 [3]=0x0578 [4]=0x05DC [5]=0x0640 [6]=0x06A4 [7]=0x0708
+          [8]=0x076C [9]=0x07D0 [10]=0x0834 [11]=0x0898 [12]=0x08FC [13]=0x0960 [14]=0x09C4 [15]=0x0A28
+          ... (continues for all 43 registers)
+```
+
+#### **Master Tab - Enhanced Request/Response Logging**
+```
+[10:45:23.123] TX Request (TID: 0001):
+  Write Request - 5 registers from 0x0042: [0]=0x1111 [1]=0x2222 [2]=0x3333 [3]=0x4444 [4]=0x5555
+
+[10:45:23.128] RX Response (TID: 0001, Time: 5.2ms):
+  Write Response - Wrote 5 registers from 0x0042 to 0x0046
+```
+
+### 🎯 Benefits Delivered
+
+1. **Complete Visibility**: No data truncation - see all register values at once
+2. **Easy Debugging**: Index numbers make it easy to identify specific registers  
+3. **Professional Appearance**: Consistent color scheme and monospace fonts
+4. **Enhanced Readability**: Color coding and formatting make logs easier to scan
+5. **No External Tools Needed**: Full request/response content visible without protocol analyzers
+6. **Improved UX**: Better visual hierarchy and information density
+7. **Cross-Tab Consistency**: Uniform debug experience across Master and Slave tabs
+
+### 🧪 Testing & Validation
+- **Created test scripts**: 
+  - `test_final_debug.py`: Comprehensive Master/Slave debug testing
+  - `test_preview_colors.py`: Preview color demonstration
+  - `verify_endianness.py`: Big-Endian confirmation
+- **Endianness verification**: Confirmed Big-Endian usage throughout application
+- **Visual consistency**: All debug messages use consistent color scheme and formatting
+
 ## [4.1.0] - 2025-08-11 - Modbus TCP Enhancements & Bug Fixes
 
 ### 🐛 Critical Bug Fixes

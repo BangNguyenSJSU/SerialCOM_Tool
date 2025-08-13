@@ -6,6 +6,7 @@ Modbus TCP Slave Tab - 4-Column Responsive Layout
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, filedialog
 import socket
+import struct
 import threading
 import datetime
 import csv
@@ -335,6 +336,14 @@ class ModbusTCPSlaveTab:
         
         ttk.Button(row2, text="Test Pattern", command=self.load_test_pattern, 
                   width=12).pack(side=tk.LEFT)
+        
+        # Row 3: Checkbox for auto-loading test pattern
+        row3 = tk.Frame(reg_content, bg=self.COLORS['bg_registers'])
+        row3.pack(fill=tk.X, pady=4)
+        
+        self.auto_load_pattern = tk.BooleanVar(value=True)
+        ttk.Checkbutton(row3, text="Auto-load test pattern on server start",
+                       variable=self.auto_load_pattern).pack(side=tk.LEFT)
     
     def set_layout_mode(self, mode: str):
         """Set the layout mode: 'wide', 'medium', or 'narrow'"""
@@ -475,12 +484,13 @@ class ModbusTCPSlaveTab:
                                                     relief=tk.SUNKEN, bd=1)
         self.log_display.pack(fill=tk.BOTH, expand=True)
         
-        # Configure log tags
-        self.log_display.tag_config("info", foreground="blue")
-        self.log_display.tag_config("request", foreground="green")
-        self.log_display.tag_config("response", foreground="purple")
-        self.log_display.tag_config("error", foreground="red")
-        self.log_display.tag_config("system", foreground="gray")
+        # Configure log tags with improved colors and fonts for better visibility
+        self.log_display.tag_config("info", foreground="#0066CC", font=('Consolas', 9))  # Nice blue
+        self.log_display.tag_config("request", foreground="#00AA00", font=('Consolas', 9, 'bold'))  # Bright green
+        self.log_display.tag_config("response", foreground="#AA00AA", font=('Consolas', 9, 'bold'))  # Bright purple
+        self.log_display.tag_config("error", foreground="#CC0000", font=('Consolas', 9, 'bold'))  # Bright red
+        self.log_display.tag_config("system", foreground="#666666", font=('Consolas', 9))  # Gray
+        self.log_display.tag_config("debug", foreground="#FF6600", font=('Consolas', 9, 'bold'), background="#FFF8E0")  # Orange on light yellow background
     
     # === EVENT HANDLERS ===
     
@@ -522,6 +532,11 @@ class ModbusTCPSlaveTab:
             # Start server thread
             self.server_thread = threading.Thread(target=self.server_worker, daemon=True)
             self.server_thread.start()
+            
+            # Auto-load test pattern if checkbox is checked
+            if self.auto_load_pattern.get():
+                self.load_test_pattern()
+                self.add_log("Test pattern loaded automatically", "info")
             
             # Update UI
             self.start_btn.config(state=tk.DISABLED)
@@ -661,8 +676,9 @@ class ModbusTCPSlaveTab:
                 if response_data:
                     client_socket.send(response_data)
                     requests_handled += 1
-                    self.frame.after(0, lambda rh=requests_handled: self.add_log(
-                        f"[DEBUG] Sent response #{rh} ({len(response_data)} bytes)", "system"))
+                    decoded_response = self.decode_response_for_debug(response_data)
+                    self.frame.after(0, lambda rh=requests_handled, dr=decoded_response: self.add_log(
+                        f"[DEBUG] Response #{rh}: {dr}", "debug"))
                 
         except socket.timeout:
             # This is normal - we use timeout to check is_running flag
@@ -701,6 +717,61 @@ class ModbusTCPSlaveTab:
             self.frame.after(0, lambda: self.connection_label.config(text="No client connected", fg=self.COLORS['fg_disconnected']))
             self.frame.after(0, lambda dr=disconnect_reason, rh=requests_handled: self.add_log(
                 f"Client disconnected: {client_address[0]}:{client_address[1]} - Reason: {dr} (Handled {rh} requests)", "info"))
+    
+    def decode_response_for_debug(self, response_data: bytes) -> str:
+        """Decode Modbus response for debug display with full register details"""
+        if len(response_data) < 8:
+            return f"Invalid response ({len(response_data)} bytes)"
+        
+        try:
+            # Parse MBAP header
+            transaction_id, protocol_id, length, unit_id = struct.unpack('>HHHB', response_data[:7])
+            function_code = response_data[7]
+            
+            # Check if it's an exception response
+            if function_code & 0x80:
+                exception_code = response_data[8] if len(response_data) > 8 else 0
+                return f"Exception Response - Function: 0x{function_code:02X}, Exception: 0x{exception_code:02X}"
+            
+            # Decode based on function code
+            if function_code == 0x03:  # Read Holding Registers Response
+                byte_count = response_data[8] if len(response_data) > 8 else 0
+                num_registers = byte_count // 2
+                
+                # Extract ALL register values with indices
+                values = []
+                reg_index = 0
+                for i in range(9, 9 + byte_count, 2):
+                    if i + 1 < len(response_data):
+                        value = struct.unpack('>H', response_data[i:i+2])[0]
+                        # Format: [index]=value
+                        values.append(f"[{reg_index}]=0x{value:04X}")
+                        reg_index += 1
+                
+                # Format output based on number of registers
+                if num_registers <= 8:
+                    # For small responses, show all on one line
+                    values_str = " ".join(values)
+                    return f"Read Response ({num_registers} regs): {values_str}"
+                else:
+                    # For larger responses, show in groups of 8 for readability
+                    lines = []
+                    for i in range(0, len(values), 8):
+                        group = " ".join(values[i:i+8])
+                        lines.append(f"    {group}")
+                    values_str = "\n".join(lines)
+                    return f"Read Response ({num_registers} registers):\n{values_str}"
+            
+            elif function_code == 0x10:  # Write Multiple Registers Response
+                start_addr = struct.unpack('>H', response_data[8:10])[0] if len(response_data) >= 10 else 0
+                quantity = struct.unpack('>H', response_data[10:12])[0] if len(response_data) >= 12 else 0
+                return f"Write Response - Wrote {quantity} registers from 0x{start_addr:04X} to 0x{start_addr + quantity - 1:04X}"
+            
+            else:
+                return f"Function 0x{function_code:02X} Response ({len(response_data)} bytes)"
+                
+        except Exception as e:
+            return f"Decode error: {str(e)}"
     
     def process_modbus_request(self, data: bytes) -> Optional[bytes]:
         """Process Modbus TCP request"""

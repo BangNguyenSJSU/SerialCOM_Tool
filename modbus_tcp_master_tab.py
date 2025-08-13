@@ -6,6 +6,7 @@ Modbus TCP Master Tab - Acts as a Modbus TCP client
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import socket
+import struct
 import threading
 import datetime
 from typing import Optional, List, Dict, Any
@@ -242,11 +243,12 @@ class ModbusTCPMasterTab:
                                                      font=("Courier", 8), bg='#FAFAFA')
         self.preview_text.pack(fill=tk.BOTH, expand=True)
         
-        # Configure tags with smaller fonts
-        self.preview_text.tag_config("header", font=("Courier", 8, "bold"), foreground="#0066CC")
-        self.preview_text.tag_config("field", font=("Courier", 8), foreground="#333333")
-        self.preview_text.tag_config("value", font=("Courier", 8, "bold"), foreground="#006600")
-        self.preview_text.tag_config("hex", font=("Courier", 8, "bold"), foreground="#9966CC")
+        # Configure tags with improved colors and fonts for better visibility
+        self.preview_text.tag_config("header", font=("Consolas", 9, "bold"), foreground="#0066CC", background="#F0F8FF")  # Blue on light blue
+        self.preview_text.tag_config("field", font=("Consolas", 9), foreground="#2E2E2E")  # Dark gray for field names
+        self.preview_text.tag_config("value", font=("Consolas", 9, "bold"), foreground="#008000", background="#F0FFF0")  # Green on light green
+        self.preview_text.tag_config("hex", font=("Consolas", 9, "bold"), foreground="#8B008B", background="#FFF0FF")  # Purple on light purple
+        self.preview_text.tag_config("address", font=("Consolas", 9, "bold"), foreground="#FF6600", background="#FFF8E0")  # Orange on light yellow
         
         # Communication Log (right half of right column)
         log_frame = ttk.LabelFrame(preview_log_frame, text="Communication Log", padding="4")
@@ -264,13 +266,14 @@ class ModbusTCPMasterTab:
                                                     font=("Courier", 8))
         self.log_display.pack(fill=tk.BOTH, expand=True)
         
-        # Configure log tags with smaller fonts
-        self.log_display.tag_config("info", foreground="blue", font=("Courier", 8))
-        self.log_display.tag_config("request", foreground="green", font=("Courier", 8))
-        self.log_display.tag_config("response", foreground="purple", font=("Courier", 8))
-        self.log_display.tag_config("error", foreground="red", font=("Courier", 8))
-        self.log_display.tag_config("timeout", foreground="orange", font=("Courier", 8))
-        self.log_display.tag_config("system", foreground="gray", font=("Courier", 8))
+        # Configure log tags with improved colors and fonts
+        self.log_display.tag_config("info", foreground="#0066CC", font=("Consolas", 9))
+        self.log_display.tag_config("request", foreground="#00AA00", font=("Consolas", 9, "bold"))
+        self.log_display.tag_config("response", foreground="#AA00AA", font=("Consolas", 9, "bold"))
+        self.log_display.tag_config("error", foreground="#CC0000", font=("Consolas", 9, "bold"))
+        self.log_display.tag_config("timeout", foreground="#FF8800", font=("Consolas", 9, "bold"))
+        self.log_display.tag_config("system", foreground="#666666", font=("Consolas", 9))
+        self.log_display.tag_config("debug", foreground="#FF6600", font=("Consolas", 9, "bold"), background="#FFF8E0")
         
         # Initialize UI state
         self.update_operation_ui()
@@ -295,6 +298,111 @@ class ModbusTCPMasterTab:
     def update_unit_id(self):
         """Update unit ID"""
         self.unit_id = self.unit_id_var.get()
+    
+    def decode_request_for_debug(self, request_data: bytes, operation_desc: str) -> str:
+        """Decode Modbus request for debug display"""
+        if len(request_data) < 8:
+            return f"Invalid request ({len(request_data)} bytes)"
+        
+        try:
+            # Parse MBAP header
+            transaction_id, protocol_id, length, unit_id = struct.unpack('>HHHB', request_data[:7])
+            function_code = request_data[7]
+            
+            if function_code == 0x03:  # Read Holding Registers
+                start_addr = struct.unpack('>H', request_data[8:10])[0] if len(request_data) >= 10 else 0
+                count = struct.unpack('>H', request_data[10:12])[0] if len(request_data) >= 12 else 0
+                return f"Read Request - {count} registers from 0x{start_addr:04X} to 0x{start_addr + count - 1:04X}"
+            
+            elif function_code == 0x10:  # Write Multiple Registers
+                start_addr = struct.unpack('>H', request_data[8:10])[0] if len(request_data) >= 10 else 0
+                count = struct.unpack('>H', request_data[10:12])[0] if len(request_data) >= 12 else 0
+                byte_count = request_data[12] if len(request_data) > 12 else 0
+                
+                # Extract register values
+                values = []
+                reg_index = 0
+                for i in range(13, 13 + byte_count, 2):
+                    if i + 1 < len(request_data):
+                        value = struct.unpack('>H', request_data[i:i+2])[0]
+                        values.append(f"[{reg_index}]=0x{value:04X}")
+                        reg_index += 1
+                
+                if count <= 8:
+                    values_str = " ".join(values)
+                    return f"Write Request - {count} registers from 0x{start_addr:04X}: {values_str}"
+                else:
+                    lines = []
+                    for i in range(0, len(values), 8):
+                        group = " ".join(values[i:i+8])
+                        lines.append(f"    {group}")
+                    values_str = "\n".join(lines)
+                    return f"Write Request - {count} registers from 0x{start_addr:04X}:\n{values_str}"
+            
+            else:
+                return f"Function 0x{function_code:02X} Request ({len(request_data)} bytes)"
+                
+        except Exception as e:
+            return f"Decode error: {str(e)}"
+    
+    def decode_response_for_debug(self, response_data: bytes) -> str:
+        """Decode Modbus response for debug display"""
+        if len(response_data) < 8:
+            return f"Invalid response ({len(response_data)} bytes)"
+        
+        try:
+            # Parse MBAP header
+            transaction_id, protocol_id, length, unit_id = struct.unpack('>HHHB', response_data[:7])
+            function_code = response_data[7]
+            
+            # Check if it's an exception response
+            if function_code & 0x80:
+                exception_code = response_data[8] if len(response_data) > 8 else 0
+                exception_names = {
+                    0x01: "ILLEGAL_FUNCTION",
+                    0x02: "ILLEGAL_DATA_ADDRESS", 
+                    0x03: "ILLEGAL_DATA_VALUE",
+                    0x04: "SLAVE_DEVICE_FAILURE"
+                }
+                exception_name = exception_names.get(exception_code, f"UNKNOWN_0x{exception_code:02X}")
+                return f"Exception Response - {exception_name} (0x{exception_code:02X})"
+            
+            # Decode based on function code
+            if function_code == 0x03:  # Read Holding Registers Response
+                byte_count = response_data[8] if len(response_data) > 8 else 0
+                num_registers = byte_count // 2
+                
+                # Extract ALL register values with indices
+                values = []
+                reg_index = 0
+                for i in range(9, 9 + byte_count, 2):
+                    if i + 1 < len(response_data):
+                        value = struct.unpack('>H', response_data[i:i+2])[0]
+                        values.append(f"[{reg_index}]=0x{value:04X}")
+                        reg_index += 1
+                
+                # Format output based on number of registers
+                if num_registers <= 8:
+                    values_str = " ".join(values)
+                    return f"Read Response ({num_registers} regs): {values_str}"
+                else:
+                    lines = []
+                    for i in range(0, len(values), 8):
+                        group = " ".join(values[i:i+8])
+                        lines.append(f"    {group}")
+                    values_str = "\n".join(lines)
+                    return f"Read Response ({num_registers} registers):\n{values_str}"
+            
+            elif function_code == 0x10:  # Write Multiple Registers Response
+                start_addr = struct.unpack('>H', response_data[8:10])[0] if len(response_data) >= 10 else 0
+                quantity = struct.unpack('>H', response_data[10:12])[0] if len(response_data) >= 12 else 0
+                return f"Write Response - Wrote {quantity} registers from 0x{start_addr:04X} to 0x{start_addr + quantity - 1:04X}"
+            
+            else:
+                return f"Function 0x{function_code:02X} Response ({len(response_data)} bytes)"
+                
+        except Exception as e:
+            return f"Decode error: {str(e)}"
         self.update_preview()
     
     def update_timeout(self):
@@ -319,16 +427,23 @@ class ModbusTCPMasterTab:
                 frame = ModbusTCPBuilder.read_holding_registers_request(
                     self.transaction_id, self.unit_id, start_addr, count)
                 
-                self.preview_text.insert(tk.END, f"Multi Read Request:\n")
-                self.preview_text.insert(tk.END, f"  Transaction ID: 0x{frame.transaction_id:04X}\n")
-                self.preview_text.insert(tk.END, f"  Unit ID: {frame.unit_id}\n")
-                self.preview_text.insert(tk.END, f"  Function: Read Holding Registers (0x03)\n")
-                self.preview_text.insert(tk.END, f"  Start Address: 0x{start_addr:04X} ({start_addr})\n")
-                self.preview_text.insert(tk.END, f"  Count: {count}\n\n")
+                self.preview_text.insert(tk.END, "Multi Read Request:\n", "header")
+                self.preview_text.insert(tk.END, "  Transaction ID: ", "field")
+                self.preview_text.insert(tk.END, f"0x{frame.transaction_id:04X}\n", "value")
+                self.preview_text.insert(tk.END, "  Unit ID: ", "field")
+                self.preview_text.insert(tk.END, f"{frame.unit_id}\n", "value")
+                self.preview_text.insert(tk.END, "  Function: ", "field")
+                self.preview_text.insert(tk.END, "Read Holding Registers (0x03)\n", "value")
+                self.preview_text.insert(tk.END, "  Start Address: ", "field")
+                self.preview_text.insert(tk.END, f"0x{start_addr:04X}", "address")
+                self.preview_text.insert(tk.END, f" ({start_addr})\n", "value")
+                self.preview_text.insert(tk.END, "  Count: ", "field")
+                self.preview_text.insert(tk.END, f"{count}\n\n", "value")
                 
                 frame_bytes = frame.to_bytes()
                 hex_str = " ".join(f"{b:02X}" for b in frame_bytes)
-                self.preview_text.insert(tk.END, f"Raw bytes ({len(frame_bytes)}):\n{hex_str}")
+                self.preview_text.insert(tk.END, f"Raw bytes ({len(frame_bytes)}):\n", "header")
+                self.preview_text.insert(tk.END, hex_str, "hex")
                 
             else:  # write
                 try:
@@ -347,31 +462,41 @@ class ModbusTCPMasterTab:
                     frame = ModbusTCPBuilder.write_multiple_registers_request(
                         self.transaction_id, self.unit_id, start_addr, values)
                     
-                    self.preview_text.insert(tk.END, f"Multi Write Request:\n")
-                    self.preview_text.insert(tk.END, f"  Transaction ID: 0x{frame.transaction_id:04X}\n")
-                    self.preview_text.insert(tk.END, f"  Unit ID: {frame.unit_id}\n")
-                    self.preview_text.insert(tk.END, f"  Function: Write Multiple Registers (0x10)\n")
-                    self.preview_text.insert(tk.END, f"  Start Address: 0x{start_addr:04X} ({start_addr})\n")
-                    self.preview_text.insert(tk.END, f"  Count: {len(values)}\n")
+                    self.preview_text.insert(tk.END, "Multi Write Request:\n", "header")
+                    self.preview_text.insert(tk.END, "  Transaction ID: ", "field")
+                    self.preview_text.insert(tk.END, f"0x{frame.transaction_id:04X}\n", "value")
+                    self.preview_text.insert(tk.END, "  Unit ID: ", "field")
+                    self.preview_text.insert(tk.END, f"{frame.unit_id}\n", "value")
+                    self.preview_text.insert(tk.END, "  Function: ", "field")
+                    self.preview_text.insert(tk.END, "Write Multiple Registers (0x10)\n", "value")
+                    self.preview_text.insert(tk.END, "  Start Address: ", "field")
+                    self.preview_text.insert(tk.END, f"0x{start_addr:04X}", "address")
+                    self.preview_text.insert(tk.END, f" ({start_addr})\n", "value")
+                    self.preview_text.insert(tk.END, "  Count: ", "field")
+                    self.preview_text.insert(tk.END, f"{len(values)}\n", "value")
                     
                     values_str = ", ".join(f"0x{v:04X}" for v in values[:8])
                     if len(values) > 8:
                         values_str += f"... ({len(values)} total)"
-                    self.preview_text.insert(tk.END, f"  Values: [{values_str}]\n\n")
+                    self.preview_text.insert(tk.END, "  Values: [", "field")
+                    self.preview_text.insert(tk.END, values_str, "hex")
+                    self.preview_text.insert(tk.END, "]\n\n", "field")
                     
                     frame_bytes = frame.to_bytes()
                     hex_str = " ".join(f"{b:02X}" for b in frame_bytes)
-                    self.preview_text.insert(tk.END, f"Raw bytes ({len(frame_bytes)}):\n{hex_str}")
+                    self.preview_text.insert(tk.END, f"Raw bytes ({len(frame_bytes)}):\n", "header")
+                    self.preview_text.insert(tk.END, hex_str, "hex")
                     
                 except ValueError as e:
-                    self.preview_text.insert(tk.END, f"Invalid values: {str(e)}")
+                    self.preview_text.insert(tk.END, "Invalid values: ", "field")
+                    self.preview_text.insert(tk.END, str(e), "hex")
             
             self.preview_text.config(state=tk.DISABLED)
             
         except ValueError:
             self.preview_text.config(state=tk.NORMAL)
             self.preview_text.delete(1.0, tk.END)
-            self.preview_text.insert(tk.END, "Invalid parameters")
+            self.preview_text.insert(tk.END, "Invalid parameters", "hex")
             self.preview_text.config(state=tk.DISABLED)
     
     def connect_to_server(self):
@@ -485,10 +610,11 @@ class ModbusTCPMasterTab:
             self.request_count += 1
             self.update_statistics()
             
-            # Log request
+            # Log request with detailed decoding
             timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            decoded_request = self.decode_request_for_debug(request_bytes, operation_desc)
             self.add_log(f"[{timestamp}] TX Request (TID: {self.transaction_id:04X}):", "request")
-            self.add_log(f"  {operation_desc}", "request")
+            self.add_log(f"  {decoded_request}", "debug")
             
             # Store pending request for timeout handling
             self.pending_requests[self.transaction_id] = {
@@ -567,37 +693,17 @@ class ModbusTCPMasterTab:
             self.response_count += 1
             self.update_statistics()
             
+            # Use improved response decoding
+            response_bytes = response.to_bytes()
+            decoded_response = self.decode_response_for_debug(response_bytes)
+            
             # Check for exception response
             if response.function_code & 0x80:
-                parsed = ModbusTCPParser.parse_exception_response(response)
-                if parsed:
-                    self.error_count += 1
-                    self.update_statistics()
-                    self.add_log(f"  Exception: {parsed['exception_name']}", "error")
-                else:
-                    self.add_log(f"  Unknown exception response", "error")
-                return
-            
-            # Parse normal response
-            if response.function_code == ModbusFunctionCode.READ_HOLDING_REGISTERS:
-                parsed = ModbusTCPParser.parse_read_holding_registers_response(response)
-                if parsed:
-                    values = parsed['values']
-                    values_str = ", ".join(f"0x{v:04X}" for v in values[:8])
-                    if len(values) > 8:
-                        values_str += f"... ({len(values)} total)"
-                    self.add_log(f"  Read Response: [{values_str}]", "response")
-                else:
-                    self.add_log(f"  Invalid read response format", "error")
-            
-            elif response.function_code == ModbusFunctionCode.WRITE_MULTIPLE_REGISTERS:
-                parsed = ModbusTCPParser.parse_write_multiple_registers_response(response)
-                if parsed:
-                    self.add_log(f"  Write Response: Address=0x{parsed['start_address']:04X}, Count={parsed['count']}", "response")
-                else:
-                    self.add_log(f"  Invalid write response format", "error")
+                self.error_count += 1
+                self.update_statistics()
+                self.add_log(f"  {decoded_response}", "error")
             else:
-                self.add_log(f"  Unknown response function: 0x{response.function_code:02X}", "error")
+                self.add_log(f"  {decoded_response}", "debug")
         
         # Execute on main thread
         self.frame.after(0, process_response)
