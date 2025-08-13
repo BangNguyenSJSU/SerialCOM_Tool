@@ -476,7 +476,7 @@ class ModbusTCPMasterTab:
                 values_preview = ", ".join(f"0x{v:04X}" for v in values[:4])
                 if len(values) > 4:
                     values_preview += f"... ({len(values)} total)"
-                operation_desc = f"Write {len(values)} registers to 0x{start_addr:04X}: [{values_preview}]"
+                operation_desc = f"Write {len(values)} registers from 0x{start_addr:04X}: [{values_preview}]"
             
             # Send request
             request_bytes = frame.to_bytes()

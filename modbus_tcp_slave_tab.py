@@ -728,7 +728,7 @@ class ModbusTCPSlaveTab:
                         request.transaction_id, request.unit_id, values)
                     
                     self.frame.after(0, lambda: self.add_log(
-                        f"[{timestamp}] Read {parsed['count']} registers from {parsed['start_address']:04X}", "request"))
+                        f"[{timestamp}] Read {parsed['count']} registers from 0x{parsed['start_address']:04X}", "request"))
                     
                     self.response_count += 1
                     self.frame.after(0, self.update_statistics)
@@ -743,7 +743,7 @@ class ModbusTCPSlaveTab:
                         parsed['start_address'], len(parsed['values']))
                     
                     self.frame.after(0, lambda: self.add_log(
-                        f"[{timestamp}] Write {len(parsed['values'])} registers to {parsed['start_address']:04X}", "request"))
+                        f"[{timestamp}] Write {len(parsed['values'])} registers from 0x{parsed['start_address']:04X}", "request"))
                     self.frame.after(0, self.refresh_register_view)
                     
                     self.response_count += 1
