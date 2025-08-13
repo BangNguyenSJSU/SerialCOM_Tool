@@ -14,6 +14,9 @@ from modbus_tcp_protocol import (
     ModbusTCPFrame, ModbusTCPBuilder, ModbusTCPParser,
     ModbusFunctionCode, ModbusException
 )
+from ui_styles import (
+    FONTS, SPACING, COLORS, configure_text_widget
+)
 
 
 class ModbusTCPMasterTab:
@@ -23,18 +26,32 @@ class ModbusTCPMasterTab:
     and sending register read/write requests with comprehensive logging.
     """
     
-    # Color scheme matching original tabs
-    COLORS = {
-        'bg_main': '#f0f0f0',           # Light gray main background
-        'bg_connection': '#e3f2fd',     # Light blue for connection config
-        'bg_request': '#f3e5f5',        # Light purple for request config
-        'bg_preview': '#fff3e0',        # Light amber for preview
-        'bg_stats': '#e8f5e9',          # Light green for statistics
-        'bg_log': '#ffffff',            # White for log display
-        'fg_connected': '#4caf50',      # Green for connected
-        'fg_disconnected': '#f44336',   # Red for disconnected
-        'border_dark': '#9e9e9e',       # Dark gray for borders
-    }
+    # Using shared styling system from ui_styles module
+    
+    def _init_style(self):
+        """Initialize ttk styles for professional appearance"""
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+        
+        # Global widget polish
+        style.configure(".", font=FONTS["ui"])
+        style.configure("TButton", padding=(10, 6))
+        style.configure("TLabel", foreground="#222")
+        style.configure("TEntry", padding=2)
+        style.configure("TSpinbox", padding=2)
+        style.configure("TLabelframe.Label", font=FONTS["ui_bold"], foreground="#374151")
+        style.configure("TLabelframe", padding=8)
+        
+        # Subtle sections
+        style.configure("Section.TLabelframe")
+        style.configure("Accent.TButton", font=FONTS["ui_bold"])
+        
+        # Statistics styles
+        style.configure("StatLabel.TLabel", font=("Segoe UI", 9), foreground="#6B7280")
+        style.configure("StatValue.TLabel", font=("Segoe UI", 11, "bold"), foreground="#111827")
     
     def __init__(self, parent_frame: ttk.Frame):
         """Initialize Modbus TCP Master Tab."""
@@ -70,82 +87,82 @@ class ModbusTCPMasterTab:
     
     def create_widgets(self):
         """Create Modbus TCP Master tab UI elements"""
+        self._init_style()
+        
         # Main container with reduced padding
-        main_frame = tk.Frame(self.frame, bg=self.COLORS['bg_main'])
+        main_frame = tk.Frame(self.frame)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Compact connection configuration
-        config_frame = tk.LabelFrame(main_frame, text="Connection Configuration",
-                                    bg=self.COLORS['bg_connection'],
-                                    fg='#01579b',
-                                    font=('Arial', 9, 'bold'),
-                                    relief=tk.RAISED, bd=1)
-        config_frame.pack(fill=tk.X, pady=(0, 5), padx=2)
+        config_frame = ttk.LabelFrame(main_frame, text="Connection Configuration",
+                                     style="Section.TLabelframe")
+        config_frame.pack(fill=tk.X, pady=(0, 8), padx=6)
         
         # Compact connection settings
         conn_frame = ttk.Frame(config_frame)
-        conn_frame.pack(fill=tk.X, pady=(2, 4))
+        conn_frame.pack(fill=tk.X, pady=(2, 4), padx=6)
         
         # Server IP
-        ttk.Label(conn_frame, text="Server IP:", font=('Arial', 9)).grid(row=0, column=0, sticky=tk.E, padx=(0, 5), pady=2)
+        ttk.Label(conn_frame, text="Server IP:").grid(row=0, column=0, sticky=tk.E, padx=(0, 6), pady=2)
         self.server_ip_var = tk.StringVar(value="127.0.0.1")
-        self.server_ip_entry = ttk.Entry(conn_frame, textvariable=self.server_ip_var, width=12, font=('Arial', 9))
-        self.server_ip_entry.grid(row=0, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+        self.server_ip_entry = ttk.Entry(conn_frame, textvariable=self.server_ip_var, width=14)
+        self.server_ip_entry.grid(row=0, column=1, padx=(0, 18), pady=2, sticky=tk.W)
         
         # Server Port  
-        ttk.Label(conn_frame, text="Port:", font=('Arial', 9)).grid(row=0, column=2, sticky=tk.E, padx=(0, 5), pady=2)
+        ttk.Label(conn_frame, text="Port:").grid(row=0, column=2, sticky=tk.E, padx=(0, 6), pady=2)
         self.server_port_var = tk.IntVar(value=502)
         self.server_port_spin = ttk.Spinbox(conn_frame, from_=1, to=65535, 
-                                           textvariable=self.server_port_var, width=8, font=('Arial', 9))
-        self.server_port_spin.grid(row=0, column=3, padx=(0, 10), pady=2, sticky=tk.W)
+                                           textvariable=self.server_port_var, width=8)
+        self.server_port_spin.grid(row=0, column=3, padx=(0, 18), pady=2, sticky=tk.W)
         
         # Unit ID
-        ttk.Label(conn_frame, text="Unit ID:", font=('Arial', 9)).grid(row=0, column=4, sticky=tk.E, padx=(0, 5), pady=2)
+        ttk.Label(conn_frame, text="Unit ID:").grid(row=0, column=4, sticky=tk.E, padx=(0, 6), pady=2)
         self.unit_id_var = tk.IntVar(value=self.unit_id)
         self.unit_id_spin = ttk.Spinbox(conn_frame, from_=1, to=247, textvariable=self.unit_id_var,
-                                       width=6, font=('Arial', 9), command=self.update_unit_id)
-        self.unit_id_spin.grid(row=0, column=5, pady=2, sticky=tk.W)
+                                       width=6, command=self.update_unit_id)
+        self.unit_id_spin.grid(row=0, column=5, padx=(0, 18), pady=2, sticky=tk.W)
         
         # Timeout on same row
-        ttk.Label(conn_frame, text="Timeout(ms):", font=('Arial', 9)).grid(row=0, column=6, sticky=tk.E, padx=(10, 5), pady=2)
+        ttk.Label(conn_frame, text="Timeout (ms):").grid(row=0, column=6, sticky=tk.E, padx=(0, 6), pady=2)
         self.timeout_var = tk.IntVar(value=self.response_timeout)
         ttk.Spinbox(conn_frame, from_=100, to=10000, textvariable=self.timeout_var,
-                   width=6, font=('Arial', 9), increment=100, command=self.update_timeout).grid(row=0, column=7, pady=2, sticky=tk.W)
+                   width=6, increment=100, command=self.update_timeout).grid(row=0, column=7, pady=2, sticky=tk.W)
         
         # Compact connection controls and status on second row
         conn_control_frame = ttk.Frame(config_frame)
         conn_control_frame.pack(fill=tk.X, pady=(4, 2))
         
-        # Buttons on left
-        self.connect_btn = ttk.Button(conn_control_frame, text="Connect", command=self.connect_to_server, width=10)
+        # Buttons on left with keyboard mnemonics
+        self.connect_btn = ttk.Button(conn_control_frame, text="Connect", underline=0,
+                                     command=self.connect_to_server, width=10, style="Accent.TButton")
         self.connect_btn.pack(side=tk.LEFT, padx=(0, 5))
         
-        self.disconnect_btn = ttk.Button(conn_control_frame, text="Disconnect", command=self.disconnect_from_server,
+        self.disconnect_btn = ttk.Button(conn_control_frame, text="Disconnect", underline=0,
+                                        command=self.disconnect_from_server,
                                         state=tk.DISABLED, width=10)
         self.disconnect_btn.pack(side=tk.LEFT, padx=(0, 15))
         
-        # Status in center
-        ttk.Label(conn_control_frame, text="Status:", font=('Arial', 9)).pack(side=tk.LEFT, padx=(0, 5))
-        self.status_label = tk.Label(conn_control_frame, text="Disconnected", 
-                                    bg='#f0f0f0', fg='red', font=('Arial', 9, 'bold'))
-        self.status_label.pack(side=tk.LEFT)
+        # Status pill (single element for cleaner state display)
+        self.status_pill = tk.Label(conn_control_frame, text="Disconnected",
+                                   bd=0, padx=10, pady=3, fg="#991B1B",
+                                   font=FONTS["ui_bold"])
+        self.status_pill.pack(side=tk.LEFT, padx=(6, 0))
         
-        self.status_indicator = tk.Label(conn_control_frame, text="[X]", 
-                                    bg='#f0f0f0', fg='red', font=('Arial', 12, 'bold'))
-        self.status_indicator.pack(side=tk.LEFT, padx=(5, 0))
+        # Add separator between header and content
+        ttk.Separator(main_frame, orient='horizontal').pack(fill=tk.X, pady=(4, 8), padx=6)
         
         # Two-column layout: Request config + Stats | Preview + Log
-        content_frame = tk.Frame(main_frame, bg='#f0f0f0')
+        content_frame = tk.Frame(main_frame)
         content_frame.pack(fill=tk.BOTH, expand=True)
         content_frame.columnconfigure(0, weight=1)  # Request config + Stats
         content_frame.columnconfigure(1, weight=2)  # Preview + Log
         
         # Left column: Request Configuration + Statistics
-        left_column = tk.Frame(content_frame, bg='#f0f0f0')
+        left_column = tk.Frame(content_frame)
         left_column.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
         
         # Right column: Preview + Communication Log
-        right_column = tk.Frame(content_frame, bg='#f0f0f0')
+        right_column = tk.Frame(content_frame)
         right_column.grid(row=0, column=1, sticky='nsew', padx=(5, 0))
         
         # === LEFT COLUMN ===
@@ -156,14 +173,16 @@ class ModbusTCPMasterTab:
         
         # Compact operation selection
         op_frame = ttk.Frame(request_frame)
-        op_frame.pack(fill=tk.X, pady=(0, 6))
+        op_frame.pack(fill=tk.X, pady=(0, 4))
         
-        ttk.Label(op_frame, text="Operation:", font=('Arial', 9, 'bold')).pack(side=tk.TOP, anchor=tk.W)
+        ttk.Label(op_frame, text="Operation", font=FONTS["ui_bold"]).pack(anchor=tk.W)
+        rb_container = ttk.Frame(op_frame)
+        rb_container.pack(anchor=tk.W, pady=(2, 0))
         
         self.operation_var = tk.StringVar(value="read")
-        ttk.Radiobutton(op_frame, text="Read (0x03)", variable=self.operation_var,
-                       value="read", command=self.update_preview).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Radiobutton(op_frame, text="Write (0x10)", variable=self.operation_var,
+        ttk.Radiobutton(rb_container, text="Read (0x03)", variable=self.operation_var,
+                       value="read", command=self.update_preview).pack(side=tk.LEFT, padx=(0, 12))
+        ttk.Radiobutton(rb_container, text="Write (0x10)", variable=self.operation_var,
                        value="write", command=self.update_preview).pack(side=tk.LEFT)
         
         # Compact parameters layout
@@ -171,88 +190,97 @@ class ModbusTCPMasterTab:
         params_frame.pack(fill=tk.X, pady=(0, 6))
         
         # Start Address
-        ttk.Label(params_frame, text="Start Address:", font=('Arial', 9)).grid(row=0, column=0, sticky=tk.W, pady=2)
+        ttk.Label(params_frame, text="Start Address:").grid(row=0, column=0, sticky=tk.W, pady=2)
         self.start_addr_var = tk.StringVar(value="0000")
-        self.start_addr_entry = ttk.Entry(params_frame, textvariable=self.start_addr_var, width=8, font=('Arial', 9))
+        self.start_addr_entry = ttk.Entry(params_frame, textvariable=self.start_addr_var, width=8)
         self.start_addr_entry.grid(row=0, column=1, padx=(5, 2), pady=2, sticky=tk.W)
         self.start_addr_var.trace('w', lambda *args: self.update_preview())
         
-        ttk.Label(params_frame, text="(hex)", font=('Arial', 8), foreground='gray').grid(row=0, column=2, sticky=tk.W, pady=2)
+        ttk.Label(params_frame, text="(hex)", font=("Segoe UI", 8), foreground="#6B7280").grid(row=0, column=2, sticky=tk.W, pady=2)
         
         # Count (for read)
-        self.count_label = ttk.Label(params_frame, text="Count:", font=('Arial', 9))
+        self.count_label = ttk.Label(params_frame, text="Count:")
         self.count_label.grid(row=1, column=0, sticky=tk.W, pady=2)
         self.count_var = tk.IntVar(value=1)
-        self.count_spin = ttk.Spinbox(params_frame, from_=1, to=125, textvariable=self.count_var, width=8, font=('Arial', 9))
+        self.count_spin = ttk.Spinbox(params_frame, from_=1, to=125, textvariable=self.count_var, width=8)
         self.count_spin.grid(row=1, column=1, padx=(5, 0), pady=2, sticky=tk.W)
         self.count_var.trace('w', lambda *args: self.update_preview())
         
         # Values for write operation
-        self.values_label = ttk.Label(params_frame, text="Values (hex):", font=('Arial', 9))
+        self.values_label = ttk.Label(params_frame, text="Values (hex):")
         self.values_var = tk.StringVar(value="0000,0001,0002")
-        self.values_entry = ttk.Entry(params_frame, textvariable=self.values_var, width=25, font=('Arial', 9))
+        self.values_entry = ttk.Entry(params_frame, textvariable=self.values_var, width=25)
         self.values_var.trace('w', lambda *args: self.update_preview())
         
         # Compact send button
         send_frame = ttk.Frame(request_frame)
         send_frame.pack(fill=tk.X, pady=(6, 0))
         
-        self.send_btn = ttk.Button(send_frame, text="Send Request", command=self.send_request, 
-                                  state=tk.DISABLED, width=12)
+        self.send_btn = ttk.Button(send_frame, text="Send Request", underline=0,
+                                  command=self.send_request, state=tk.DISABLED, width=12,
+                                  style="Accent.TButton")
         self.send_btn.pack(side=tk.LEFT)
         
         # Statistics section in left column
         stats_frame = ttk.LabelFrame(left_column, text="Statistics", padding="4")
         stats_frame.pack(fill=tk.X, pady=(5, 0))
         
-        # Vertical compact layout
+        # Vertical compact layout with professional statistics styling
         stats_grid = ttk.Frame(stats_frame)
         stats_grid.pack(fill=tk.X)
         
-        ttk.Label(stats_grid, text="Requests:", font=('Arial', 8)).grid(row=0, column=0, sticky=tk.W)
-        self.requests_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'))
-        self.requests_label.grid(row=0, column=1, sticky=tk.W, padx=(5, 0))
+        ttk.Label(stats_grid, text="Requests", style="StatLabel.TLabel").grid(row=0, column=0, sticky=tk.W)
+        self.requests_label = ttk.Label(stats_grid, text="0", style="StatValue.TLabel")
+        self.requests_label.grid(row=0, column=1, sticky=tk.E, padx=(5, 0))
         
-        ttk.Label(stats_grid, text="Responses:", font=('Arial', 8)).grid(row=1, column=0, sticky=tk.W)
-        self.responses_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'))
-        self.responses_label.grid(row=1, column=1, sticky=tk.W, padx=(5, 0))
+        ttk.Label(stats_grid, text="Responses", style="StatLabel.TLabel").grid(row=1, column=0, sticky=tk.W)
+        self.responses_label = ttk.Label(stats_grid, text="0", style="StatValue.TLabel")
+        self.responses_label.grid(row=1, column=1, sticky=tk.E, padx=(5, 0))
         
-        ttk.Label(stats_grid, text="Timeouts:", font=('Arial', 8)).grid(row=2, column=0, sticky=tk.W)
-        self.timeouts_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'), foreground="orange")
-        self.timeouts_label.grid(row=2, column=1, sticky=tk.W, padx=(5, 0))
+        ttk.Label(stats_grid, text="Timeouts", style="StatLabel.TLabel").grid(row=2, column=0, sticky=tk.W)
+        self.timeouts_label = ttk.Label(stats_grid, text="0", style="StatValue.TLabel", foreground="#F59E0B")
+        self.timeouts_label.grid(row=2, column=1, sticky=tk.E, padx=(5, 0))
         
-        ttk.Label(stats_grid, text="Errors:", font=('Arial', 8)).grid(row=3, column=0, sticky=tk.W)
-        self.errors_label = ttk.Label(stats_grid, text="0", font=('Arial', 8, 'bold'), foreground="red")
-        self.errors_label.grid(row=3, column=1, sticky=tk.W, padx=(5, 0))
+        ttk.Label(stats_grid, text="Errors", style="StatLabel.TLabel").grid(row=3, column=0, sticky=tk.W)
+        self.errors_label = ttk.Label(stats_grid, text="0", style="StatValue.TLabel", foreground="#DC2626")
+        self.errors_label.grid(row=3, column=1, sticky=tk.E, padx=(5, 0))
         
         ttk.Button(stats_frame, text="Reset", command=self.reset_statistics, width=8).pack(pady=(4, 0))
         
         # === RIGHT COLUMN ===
         
         # Create horizontal layout for Preview and Log side by side
-        preview_log_frame = tk.Frame(right_column, bg='#f0f0f0')
+        preview_log_frame = tk.Frame(right_column)
         preview_log_frame.pack(fill=tk.BOTH, expand=True)
         preview_log_frame.columnconfigure(0, weight=1)  # Preview column
         preview_log_frame.columnconfigure(1, weight=1)  # Log column
         
         # Request Preview (left half of right column)
-        preview_frame = ttk.LabelFrame(preview_log_frame, text="Request Preview", padding="4")
+        preview_frame = ttk.LabelFrame(preview_log_frame, text="Preview", padding="4")
         preview_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 3))
         
-        self.preview_text = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, height=25,
-                                                     font=("Courier", 8), bg='#FAFAFA')
+        self.preview_text = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, height=25)
         self.preview_text.pack(fill=tk.BOTH, expand=True)
+        configure_text_widget(self.preview_text, "preview")
         
-        # Configure tags with improved colors and fonts for better visibility
-        self.preview_text.tag_config("header", font=("Consolas", 9, "bold"), foreground="#0066CC", background="#F0F8FF")  # Blue on light blue
-        self.preview_text.tag_config("field", font=("Consolas", 9), foreground="#2E2E2E")  # Dark gray for field names
-        self.preview_text.tag_config("value", font=("Consolas", 9, "bold"), foreground="#008000", background="#F0FFF0")  # Green on light green
-        self.preview_text.tag_config("hex", font=("Consolas", 9, "bold"), foreground="#8B008B", background="#FFF0FF")  # Purple on light purple
-        self.preview_text.tag_config("address", font=("Consolas", 9, "bold"), foreground="#FF6600", background="#FFF8E0")  # Orange on light yellow
+        # Configure tags with high contrast and clean appearance
+        self.preview_text.tag_config("header", font=FONTS["mono"], foreground="#1F4B99")
+        self.preview_text.tag_config("field", font=FONTS["mono"], foreground="#2E2E2E")
+        self.preview_text.tag_config("value", font=FONTS["mono"], foreground="#065F46")
+        self.preview_text.tag_config("hex", font=FONTS["mono"], foreground="#6B21A8")
+        self.preview_text.tag_config("address", font=FONTS["mono"], foreground="#B45309")
         
-        # Communication Log (right half of right column)
-        log_frame = ttk.LabelFrame(preview_log_frame, text="Communication Log", padding="4")
-        log_frame.grid(row=0, column=1, sticky='nsew', padx=(3, 0))
+        # Add vertical separator between Preview and Log
+        sep = ttk.Separator(preview_log_frame, orient="vertical")
+        sep.grid(row=0, column=1, sticky="ns", padx=4)
+        
+        # Communication Log (right half of right column)  
+        log_frame = ttk.LabelFrame(preview_log_frame, text="Log", padding="4")
+        log_frame.grid(row=0, column=2, sticky='nsew', padx=(3, 0))
+        
+        # Update column configuration
+        preview_log_frame.columnconfigure(0, weight=1)  # Preview column
+        preview_log_frame.columnconfigure(2, weight=1)  # Log column
         
         # Compact log toolbar
         log_toolbar = ttk.Frame(log_frame)
@@ -262,21 +290,24 @@ class ModbusTCPMasterTab:
         ttk.Button(log_toolbar, text="Clear", command=self.clear_log, width=6).pack(side=tk.RIGHT)
         
         # Compact log display
-        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=25,
-                                                    font=("Courier", 8))
+        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=25)
         self.log_display.pack(fill=tk.BOTH, expand=True)
+        configure_text_widget(self.log_display, "log")
         
-        # Configure log tags with improved colors and fonts
-        self.log_display.tag_config("info", foreground="#0066CC", font=("Consolas", 9))
-        self.log_display.tag_config("request", foreground="#00AA00", font=("Consolas", 9, "bold"))
-        self.log_display.tag_config("response", foreground="#AA00AA", font=("Consolas", 9, "bold"))
-        self.log_display.tag_config("error", foreground="#CC0000", font=("Consolas", 9, "bold"))
-        self.log_display.tag_config("timeout", foreground="#FF8800", font=("Consolas", 9, "bold"))
-        self.log_display.tag_config("system", foreground="#666666", font=("Consolas", 9))
-        self.log_display.tag_config("debug", foreground="#FF6600", font=("Consolas", 9, "bold"), background="#FFF8E0")
+        # Configure log tags with high contrast colors
+        self.log_display.tag_config("info", foreground="#0066CC", font=FONTS["mono"])
+        self.log_display.tag_config("request", foreground="#00AA00", font=FONTS["mono"])
+        self.log_display.tag_config("response", foreground="#AA00AA", font=FONTS["mono"])
+        self.log_display.tag_config("error", foreground="#CC0000", font=FONTS["mono"])
+        self.log_display.tag_config("timeout", foreground="#FF8800", font=FONTS["mono"])
+        self.log_display.tag_config("system", foreground="#666666", font=FONTS["mono"])
+        self.log_display.tag_config("debug", foreground="#FF6600", font=FONTS["mono"])
         
         # Initialize UI state
         self.update_operation_ui()
+        
+        # Set initial focus for keyboard accessibility
+        self.server_ip_entry.focus_set()
     
     def update_operation_ui(self):
         """Update UI based on selected operation"""
@@ -525,8 +556,7 @@ class ModbusTCPMasterTab:
             self.send_btn.config(state=tk.NORMAL)
             self.server_ip_entry.config(state=tk.DISABLED)
             self.server_port_spin.config(state=tk.DISABLED)
-            self.status_label.config(text="Connected", fg=self.COLORS['fg_connected'])
-            self.status_indicator.config(fg=self.COLORS['fg_connected'])
+            self.status_pill.config(text="Connected", fg="#065F46")
             
             self.add_log(f"[CONNECTED] Connected to {server_ip}:{server_port}", "info")
             
@@ -567,8 +597,7 @@ class ModbusTCPMasterTab:
         self.send_btn.config(state=tk.DISABLED)
         self.server_ip_entry.config(state=tk.NORMAL)
         self.server_port_spin.config(state=tk.NORMAL)
-        self.status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
-        self.status_indicator.config(fg=self.COLORS['fg_disconnected'])
+        self.status_pill.config(text="Disconnected", fg="#991B1B")
         
         self.add_log("[DISCONNECTED] Disconnected from server", "info")
     

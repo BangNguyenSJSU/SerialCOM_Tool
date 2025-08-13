@@ -15,26 +15,13 @@ from modbus_tcp_protocol import (
     ModbusTCPFrame, ModbusTCPBuilder, ModbusTCPParser, ModbusRegisterMap,
     ModbusFunctionCode, ModbusException
 )
+from ui_styles import FONTS, SPACING, COLORS, configure_text_widget, create_status_pill, update_status_pill, init_style
 
 
 class ModbusTCPSlaveTab:
     """Modbus TCP Slave implementation with 4-column responsive layout."""
     
-    # Color scheme matching original tabs
-    COLORS = {
-        'bg_main': '#f0f0f0',           # Light gray main background
-        'bg_server': '#e3f2fd',         # Light blue for server config (like host address)
-        'bg_stats': '#f3e5f5',          # Light purple for statistics (like operation)
-        'bg_error': '#fff3e0',          # Light amber for error simulation (like preview)
-        'bg_registers': '#e8f5e9',      # Light green for register management (like params)
-        'bg_log': '#ffffff',            # White for log display
-        'bg_regmap': '#ffffff',         # White for register map display
-        'fg_running': '#4caf50',        # Green for running status
-        'fg_stopped': '#f44336',        # Red for stopped status
-        'fg_connected': '#4caf50',      # Green for connected
-        'fg_disconnected': '#666666',   # Gray for disconnected
-        'border_dark': '#9e9e9e',       # Dark gray for borders
-    }
+    # Using shared color scheme from ui_styles module
     
     def __init__(self, parent_frame: ttk.Frame):
         """Initialize Modbus TCP Slave Tab."""
@@ -103,12 +90,14 @@ class ModbusTCPSlaveTab:
     
     def create_widgets(self):
         """Create Modbus TCP Slave tab UI elements"""
+        # Initialize professional styling
+        init_style()
         # Main container with consistent styling
-        self.main_frame = tk.Frame(self.frame, bg=self.COLORS['bg_main'])
+        self.main_frame = ttk.Frame(self.frame)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Top 4-column layout with responsive design
-        self.top4 = tk.Frame(self.main_frame, bg=self.COLORS['bg_main'])
+        self.top4 = ttk.Frame(self.main_frame)
         self.top4.pack(fill=tk.X, pady=(0, 10))
         
         # Configure responsive grid (4 equal columns)
@@ -133,53 +122,47 @@ class ModbusTCPSlaveTab:
     
     def create_server_config_section(self):
         """Create Server Configuration section (Column 1)"""
-        self.server_frame = tk.LabelFrame(self.top4, text="Server Configuration",
-                                         bg=self.COLORS['bg_server'],
-                                         fg='#01579b',
-                                         font=('Arial', 10, 'bold'),
-                                         relief=tk.RAISED, bd=2)
+        self.server_frame = ttk.LabelFrame(self.top4, text="Server Configuration",
+                                          style="Section.TLabelframe")
         
-        # Content container with proper background
-        server_content = tk.Frame(self.server_frame, bg=self.COLORS['bg_server'])
-        server_content.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        # Content container with clean styling
+        server_content = ttk.Frame(self.server_frame)
+        server_content.pack(fill=tk.BOTH, expand=True, padx=SPACING['padx'], pady=SPACING['pady'])
         
         # Row 1: IP: [127.0.0.1] Port: [502] Unit: [1]
-        row1 = tk.Frame(server_content, bg=self.COLORS['bg_server'])
-        row1.pack(fill=tk.X, pady=(0, 4))
+        row1 = ttk.Frame(server_content)
+        row1.pack(fill=tk.X, pady=(0, SPACING['pady_small']))
         
         # IP field - with dropdown of available IPs
-        tk.Label(row1, text="IP:", font=('Arial', 10), bg=self.COLORS['bg_server'], 
-                width=3, anchor='e').pack(side=tk.LEFT)
+        ttk.Label(row1, text="IP:", font=FONTS['ui']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
         
         # Get available IP addresses
         available_ips = self.get_available_ips()
         self.ip_var = tk.StringVar(value="0.0.0.0")  # Default to all interfaces
         self.ip_combo = ttk.Combobox(row1, textvariable=self.ip_var, 
-                                     values=available_ips, width=12, font=('Arial', 10))
-        self.ip_combo.pack(side=tk.LEFT, padx=(2, 8))
+                                     values=available_ips, width=12, font=FONTS['ui'])
+        self.ip_combo.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
         # Port field - more compact
-        tk.Label(row1, text="Port:", font=('Arial', 10), bg=self.COLORS['bg_server'], 
-                width=4, anchor='e').pack(side=tk.LEFT)
+        ttk.Label(row1, text="Port:", font=FONTS['ui']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
         self.port_var = tk.IntVar(value=502)
         self.port_spin = ttk.Spinbox(row1, from_=1, to=65535, textvariable=self.port_var, 
-                                    width=5, font=('Arial', 10))
-        self.port_spin.pack(side=tk.LEFT, padx=(2, 8))
+                                    width=5, font=FONTS['ui'])
+        self.port_spin.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
         # Unit ID field - very compact
-        tk.Label(row1, text="Unit:", font=('Arial', 10), bg=self.COLORS['bg_server'], 
-                width=4, anchor='e').pack(side=tk.LEFT)
+        ttk.Label(row1, text="Unit:", font=FONTS['ui']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
         self.unit_id_var = tk.IntVar(value=self.unit_id)
         self.unit_id_spin = ttk.Spinbox(row1, from_=1, to=247, textvariable=self.unit_id_var,
-                                       width=3, font=('Arial', 10), command=self.update_unit_id)
-        self.unit_id_spin.pack(side=tk.LEFT, padx=(2, 0))
+                                       width=6, font=FONTS['ui'], command=self.update_unit_id)
+        self.unit_id_spin.pack(side=tk.LEFT, padx=0)
         
         # Row 1.5: [Start Server] [Stop Server] - separate row to ensure visibility
-        button_row = tk.Frame(server_content, bg=self.COLORS['bg_server'])
-        button_row.pack(fill=tk.X, pady=(4, 4))
+        button_row = ttk.Frame(server_content)
+        button_row.pack(fill=tk.X, pady=(SPACING['pady_small'], SPACING['pady_small']))
         
         self.start_btn = ttk.Button(button_row, text="Start Server", command=self.start_server, 
-                                   width=12)
+                                   width=12, style="Accent.TButton")
         self.start_btn.pack(side=tk.LEFT, padx=(0, 8))
         
         self.stop_btn = ttk.Button(button_row, text="Stop Server", command=self.stop_server,
@@ -187,57 +170,49 @@ class ModbusTCPSlaveTab:
         self.stop_btn.pack(side=tk.LEFT)
         
         # Row 2: Status: Server Stopped    Connection: No client connected
-        row2 = tk.Frame(server_content, bg=self.COLORS['bg_server'])
+        row2 = ttk.Frame(server_content)
         row2.pack(fill=tk.X, pady=(4, 0))
         
         # Status section
-        tk.Label(row2, text="Status:", font=('Arial', 9), bg=self.COLORS['bg_server']).pack(side=tk.LEFT)
-        self.status_label = tk.Label(row2, text="Server Stopped", bg=self.COLORS['bg_server'], 
-                                    fg=self.COLORS['fg_stopped'], font=('Arial', 9, 'bold'))
+        ttk.Label(row2, text="Status:", font=('Arial', 9)).pack(side=tk.LEFT)
+        self.status_label = ttk.Label(row2, text="Server Stopped", 
+                                    foreground=COLORS['fg_disconnected'], font=('Arial', 9, 'bold'))
         self.status_label.pack(side=tk.LEFT, padx=(4, 20))
         
         # Connection section
-        tk.Label(row2, text="Connection:", font=('Arial', 9), bg=self.COLORS['bg_server']).pack(side=tk.LEFT)
-        self.connection_label = tk.Label(row2, text="No client connected", 
-                                        bg=self.COLORS['bg_server'], fg=self.COLORS['fg_disconnected'],
+        ttk.Label(row2, text="Connection:", font=('Arial', 9)).pack(side=tk.LEFT)
+        self.connection_label = ttk.Label(row2, text="No client connected", foreground=COLORS['fg_disconnected'],
                                         font=('Arial', 9))
         self.connection_label.pack(side=tk.LEFT, padx=(4, 0))
     
     def create_statistics_section(self):
         """Create Statistics section (Column 2)"""
-        self.stats_frame = tk.LabelFrame(self.top4, text="Statistics",
-                                        bg=self.COLORS['bg_stats'],
-                                        fg='#4a148c',
-                                        font=('Arial', 10, 'bold'),
-                                        relief=tk.RAISED, bd=2)
+        self.stats_frame = ttk.LabelFrame(self.top4, text="Statistics",
+                                         style="Section.TLabelframe")
         
         # Content container
-        stats_content = tk.Frame(self.stats_frame, bg=self.COLORS['bg_stats'])
-        stats_content.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        stats_content = ttk.Frame(self.stats_frame)
+        stats_content.pack(fill=tk.BOTH, expand=True, padx=SPACING['padx'], pady=SPACING['pady'])
         
         # Single compact row layout
-        stats_row = tk.Frame(stats_content, bg=self.COLORS['bg_stats'])
+        stats_row = ttk.Frame(stats_content)
         stats_row.pack(fill=tk.X, pady=2)
         
         # Conn: 0  Req: 0  Resp: 0  Err: 0  [Reset]
-        tk.Label(stats_row, text="Conn:", font=('Arial', 9), bg=self.COLORS['bg_stats']).pack(side=tk.LEFT)
-        self.connections_label = tk.Label(stats_row, text="0", font=('Arial', 9, 'bold'), 
-                                         bg=self.COLORS['bg_stats'])
-        self.connections_label.pack(side=tk.LEFT, padx=(2, 8))
+        ttk.Label(stats_row, text="Conn:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
+        self.connections_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel")
+        self.connections_label.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
-        tk.Label(stats_row, text="Req:", font=('Arial', 9), bg=self.COLORS['bg_stats']).pack(side=tk.LEFT)
-        self.requests_label = tk.Label(stats_row, text="0", font=('Arial', 9, 'bold'), 
-                                      bg=self.COLORS['bg_stats'])
-        self.requests_label.pack(side=tk.LEFT, padx=(2, 8))
+        ttk.Label(stats_row, text="Req:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
+        self.requests_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel")
+        self.requests_label.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
-        tk.Label(stats_row, text="Resp:", font=('Arial', 9), bg=self.COLORS['bg_stats']).pack(side=tk.LEFT)
-        self.responses_label = tk.Label(stats_row, text="0", font=('Arial', 9, 'bold'), 
-                                       bg=self.COLORS['bg_stats'])
-        self.responses_label.pack(side=tk.LEFT, padx=(2, 8))
+        ttk.Label(stats_row, text="Resp:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
+        self.responses_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel")
+        self.responses_label.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
-        tk.Label(stats_row, text="Err:", font=('Arial', 9), bg=self.COLORS['bg_stats']).pack(side=tk.LEFT)
-        self.errors_label = tk.Label(stats_row, text="0", font=('Arial', 9, 'bold'), 
-                                    fg='red', bg=self.COLORS['bg_stats'])
+        ttk.Label(stats_row, text="Err:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
+        self.errors_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel", foreground="#DC2626") 
         self.errors_label.pack(side=tk.LEFT, padx=(2, 0))
         
         ttk.Button(stats_row, text="Reset", command=self.reset_statistics,
@@ -245,24 +220,20 @@ class ModbusTCPSlaveTab:
     
     def create_error_simulation_section(self):
         """Create Error Simulation section (Column 3)"""
-        self.error_frame = tk.LabelFrame(self.top4, text="Error Simulation",
-                                        bg=self.COLORS['bg_error'],
-                                        fg='#e65100',
-                                        font=('Arial', 10, 'bold'),
-                                        relief=tk.RAISED, bd=2)
+        self.error_frame = ttk.LabelFrame(self.top4, text="Error Simulation",
+                                         style="Section.TLabelframe")
         
         # Content container
-        error_content = tk.Frame(self.error_frame, bg=self.COLORS['bg_error'])
-        error_content.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        error_content = ttk.Frame(self.error_frame)
+        error_content.pack(fill=tk.BOTH, expand=True, padx=SPACING['padx'], pady=SPACING['pady'])
         
         # Checkbox with matching background
         self.error_checkbox = tk.Checkbutton(error_content, text="Enable Error Simulation",
-                                           variable=self.simulate_errors, bg=self.COLORS['bg_error'],
                                            command=self.toggle_error_options, font=('Arial', 9))
         self.error_checkbox.pack(anchor=tk.W, pady=(0, 4))
         
         # Radio buttons in 2-column layout with matching background
-        radio_frame = tk.Frame(error_content, bg=self.COLORS['bg_error'])
+        radio_frame = ttk.Frame(error_content)
         radio_frame.pack(fill=tk.X, padx=4, pady=2)
         radio_frame.grid_columnconfigure(0, weight=1)
         radio_frame.grid_columnconfigure(1, weight=1)
@@ -282,7 +253,6 @@ class ModbusTCPSlaveTab:
                 row = i // 2
                 col = i % 2
                 radio = tk.Radiobutton(radio_frame, text=text, variable=self.error_type,
-                                     value=value, state=tk.DISABLED, bg=self.COLORS['bg_error'],
                                      font=('Arial', 8))
                 radio.grid(row=row, column=col, sticky=tk.W, pady=1, padx=2)
                 self.error_radios.append(radio)
@@ -291,54 +261,52 @@ class ModbusTCPSlaveTab:
     
     def create_register_management_section(self):
         """Create Register Management section (Column 4)"""
-        self.reg_frame = tk.LabelFrame(self.top4, text="Register Management",
-                                      bg=self.COLORS['bg_registers'],
-                                      fg='#1b5e20',
-                                      font=('Arial', 10, 'bold'),
-                                      relief=tk.RAISED, bd=2)
+        self.reg_frame = ttk.LabelFrame(self.top4, text="Register Management",
+                                       style="Section.TLabelframe")
         
         # Content container
-        reg_content = tk.Frame(self.reg_frame, bg=self.COLORS['bg_registers'])
-        reg_content.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        reg_content = ttk.Frame(self.reg_frame)
+        reg_content.pack(fill=tk.BOTH, expand=True, padx=SPACING['padx'], pady=SPACING['pady'])
         
-        # Row 1: Addr: [0000] Value: [0000] [Set] [Export CSV]
-        row1 = tk.Frame(reg_content, bg=self.COLORS['bg_registers'])
+        # Row 1: Addr: [0000] Value: [0000] [Set]
+        row1 = ttk.Frame(reg_content)
         row1.pack(fill=tk.X, pady=(0, 4))
         
         # Left side: Input fields with right-aligned labels
-        tk.Label(row1, text="Addr:", font=('Arial', 9), bg=self.COLORS['bg_registers'], 
+        ttk.Label(row1, text="Addr:", font=('Arial', 9), 
                 width=5, anchor='e').pack(side=tk.LEFT)
         self.reg_addr_var = tk.StringVar(value="0000")
         self.reg_addr_entry = ttk.Entry(row1, textvariable=self.reg_addr_var, width=5, font=('Arial', 9))
         self.reg_addr_entry.pack(side=tk.LEFT, padx=(2, 8))
         
-        tk.Label(row1, text="Value:", font=('Arial', 9), bg=self.COLORS['bg_registers'], 
+        ttk.Label(row1, text="Value:", font=('Arial', 9), 
                 width=5, anchor='e').pack(side=tk.LEFT)
         self.reg_value_var = tk.StringVar(value="0000")
         self.reg_value_entry = ttk.Entry(row1, textvariable=self.reg_value_var, width=5, font=('Arial', 9))
         self.reg_value_entry.pack(side=tk.LEFT, padx=(2, 8))
         
         # Right side: Action buttons grouped together
-        button_frame = tk.Frame(row1, bg=self.COLORS['bg_registers'])
+        button_frame = ttk.Frame(row1)
         button_frame.pack(side=tk.RIGHT)
         
         ttk.Button(button_frame, text="Set", command=self.set_register_value, 
-                  width=6).pack(side=tk.LEFT, padx=(0, 4))
-        ttk.Button(button_frame, text="Export CSV", command=self.export_registers_csv, 
-                  width=10).pack(side=tk.LEFT)
+                  width=6).pack(side=tk.LEFT)
         
-        # Row 2: [Clear All] [Test Pattern] - secondary actions
-        row2 = tk.Frame(reg_content, bg=self.COLORS['bg_registers'])
+        # Row 2: [Clear All] [Test Pattern] [Export CSV] - secondary actions
+        row2 = ttk.Frame(reg_content)
         row2.pack(fill=tk.X, pady=4)
         
         ttk.Button(row2, text="Clear All", command=self.clear_all_registers, 
                   width=8).pack(side=tk.LEFT, padx=(0, 4))
         
         ttk.Button(row2, text="Test Pattern", command=self.load_test_pattern, 
-                  width=12).pack(side=tk.LEFT)
+                  width=12).pack(side=tk.LEFT, padx=(0, 4))
+                  
+        ttk.Button(row2, text="Export CSV", command=self.export_registers_csv, 
+                  width=10).pack(side=tk.LEFT)
         
         # Row 3: Checkbox for auto-loading test pattern
-        row3 = tk.Frame(reg_content, bg=self.COLORS['bg_registers'])
+        row3 = ttk.Frame(reg_content)
         row3.pack(fill=tk.X, pady=4)
         
         self.auto_load_pattern = tk.BooleanVar(value=True)
@@ -406,7 +374,7 @@ class ModbusTCPSlaveTab:
     def create_bottom_layout(self):
         """Create the bottom two-column layout (unchanged from original)"""
         # Two-column layout with equal widths for Register Map and Communication Log
-        columns_frame = tk.Frame(self.main_frame, bg=self.COLORS['bg_main'])
+        columns_frame = ttk.Frame(self.main_frame)
         columns_frame.pack(fill=tk.BOTH, expand=True)
         # Ensure both columns have exactly equal weights
         columns_frame.columnconfigure(0, weight=1, uniform="bottom_columns")
@@ -414,11 +382,11 @@ class ModbusTCPSlaveTab:
         columns_frame.rowconfigure(0, weight=1)
         
         # Left column
-        left_column = tk.Frame(columns_frame, bg=self.COLORS['bg_main'])
+        left_column = ttk.Frame(columns_frame)
         left_column.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
         
         # Right column
-        right_column = tk.Frame(columns_frame, bg=self.COLORS['bg_main'])
+        right_column = ttk.Frame(columns_frame)
         right_column.grid(row=0, column=1, sticky='nsew', padx=(5, 0))
         
         # Register Map Display (Left)
@@ -430,20 +398,19 @@ class ModbusTCPSlaveTab:
     def create_register_map_display(self, parent):
         """Create register map display"""
         reg_display_frame = tk.LabelFrame(parent, text="Register Map",
-                                         bg=self.COLORS['bg_regmap'],
                                          fg='#212121',
                                          font=('Arial', 10, 'bold'),
                                          relief=tk.RAISED, bd=2)
         reg_display_frame.pack(fill=tk.BOTH, expand=True, padx=5)
         
         # Register map container
-        regmap_container = tk.Frame(reg_display_frame, bg=self.COLORS['bg_regmap'])
+        regmap_container = ttk.Frame(reg_display_frame)
         regmap_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
         
         # Register map with enhanced styling
         self.register_display = scrolledtext.ScrolledText(
             regmap_container, wrap=tk.NONE, height=20, width=50,
-            font=("Courier", 11), bg='#FAFAFA',
+            font=("Courier", 11),
             relief=tk.SUNKEN, bd=1
         )
         self.register_display.pack(fill=tk.BOTH, expand=True)
@@ -456,23 +423,21 @@ class ModbusTCPSlaveTab:
     def create_communication_log(self, parent):
         """Create communication log"""
         log_frame = tk.LabelFrame(parent, text="Communication Log",
-                                 bg=self.COLORS['bg_log'],
                                  fg='#212121',
                                  font=('Arial', 10, 'bold'),
                                  relief=tk.RAISED, bd=2)
         log_frame.pack(fill=tk.BOTH, expand=True, padx=5)
         
         # Log container
-        log_container = tk.Frame(log_frame, bg=self.COLORS['bg_log'])
+        log_container = ttk.Frame(log_frame)
         log_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
         
         # Log toolbar with better alignment
-        log_toolbar = tk.Frame(log_container, bg=self.COLORS['bg_log'])
+        log_toolbar = ttk.Frame(log_container)
         log_toolbar.pack(fill=tk.X, pady=(0, 8))
         
         # Auto-scroll checkbox
-        tk.Checkbutton(log_toolbar, text="Auto-scroll", variable=self.auto_scroll,
-                      bg=self.COLORS['bg_log'], font=('Arial', 9)).pack(side=tk.LEFT)
+        ttk.Checkbutton(log_toolbar, text="Auto-scroll", variable=self.auto_scroll).pack(side=tk.LEFT)
         
         # Clear button
         ttk.Button(log_toolbar, text="Clear Log", command=self.clear_log, 
@@ -484,13 +449,8 @@ class ModbusTCPSlaveTab:
                                                     relief=tk.SUNKEN, bd=1)
         self.log_display.pack(fill=tk.BOTH, expand=True)
         
-        # Configure log tags with improved colors and fonts for better visibility
-        self.log_display.tag_config("info", foreground="#0066CC", font=('Consolas', 9))  # Nice blue
-        self.log_display.tag_config("request", foreground="#00AA00", font=('Consolas', 9, 'bold'))  # Bright green
-        self.log_display.tag_config("response", foreground="#AA00AA", font=('Consolas', 9, 'bold'))  # Bright purple
-        self.log_display.tag_config("error", foreground="#CC0000", font=('Consolas', 9, 'bold'))  # Bright red
-        self.log_display.tag_config("system", foreground="#666666", font=('Consolas', 9))  # Gray
-        self.log_display.tag_config("debug", foreground="#FF6600", font=('Consolas', 9, 'bold'), background="#FFF8E0")  # Orange on light yellow background
+        # Configure log display with consistent styling
+        configure_text_widget(self.log_display, "log")
     
     # === EVENT HANDLERS ===
     
@@ -543,7 +503,7 @@ class ModbusTCPSlaveTab:
             self.stop_btn.config(state=tk.NORMAL)
             self.ip_combo.config(state=tk.DISABLED)
             self.port_spin.config(state=tk.DISABLED)
-            self.status_label.config(text="Server Running", fg=self.COLORS['fg_running'])
+            self.status_label.config(text="Server Running", foreground=COLORS['fg_connected'])
             
             self.add_log(f"Server started on {ip}:{port}", "info")
             
@@ -593,8 +553,8 @@ class ModbusTCPSlaveTab:
         self.stop_btn.config(state=tk.DISABLED)
         self.ip_combo.config(state=tk.NORMAL)
         self.port_spin.config(state=tk.NORMAL)
-        self.status_label.config(text="Server Stopped", fg=self.COLORS['fg_stopped'])
-        self.connection_label.config(text="No client connected", fg=self.COLORS['fg_disconnected'])
+        self.status_label.config(text="Server Stopped", foreground=COLORS['fg_disconnected'])
+        self.connection_label.config(text="No client connected", foreground=COLORS['fg_disconnected'])
         
         self.add_log("Server stopped", "info")
     
@@ -616,7 +576,7 @@ class ModbusTCPSlaveTab:
                 self.connection_count += 1
                 self.frame.after(0, self.update_statistics)
                 self.frame.after(0, lambda: self.connection_label.config(
-                    text=f"{client_address[0]}:{client_address[1]}", fg=self.COLORS['fg_connected']))
+                    text=f"{client_address[0]}:{client_address[1]}", foreground=COLORS['fg_connected']))
                 self.frame.after(0, lambda: self.add_log(
                     f"Client connected: {client_address[0]}:{client_address[1]}", "info"))
                 
@@ -714,7 +674,7 @@ class ModbusTCPSlaveTab:
                     self.is_connected = False
             
             # Log detailed disconnect info
-            self.frame.after(0, lambda: self.connection_label.config(text="No client connected", fg=self.COLORS['fg_disconnected']))
+            self.frame.after(0, lambda: self.connection_label.config(text="No client connected", foreground=COLORS['fg_disconnected']))
             self.frame.after(0, lambda dr=disconnect_reason, rh=requests_handled: self.add_log(
                 f"Client disconnected: {client_address[0]}:{client_address[1]} - Reason: {dr} (Handled {rh} requests)", "info"))
     

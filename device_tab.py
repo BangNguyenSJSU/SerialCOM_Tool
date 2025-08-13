@@ -15,6 +15,7 @@ from protocol import (
     Packet, PacketBuilder, PacketParser,
     FunctionCode, ErrorCode, RegisterMap
 )
+from ui_styles import FONTS, SPACING, COLORS, configure_text_widget
 
 
 class DeviceTab:

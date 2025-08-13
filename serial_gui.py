@@ -41,7 +41,7 @@ class ToolTip:
         self.tooltip.wm_geometry(f"+{x}+{y}")
         
         label = tk.Label(self.tooltip, text=self.text, justify=tk.LEFT,
-                        background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+                        relief=tk.SOLID, borderwidth=1,
                         font=("Arial", 9))
         label.pack()
     
@@ -135,41 +135,41 @@ class SerialGUI:
         style = ttk.Style()
         
         # Configure label styles for different sections
-        style.configure('Connection.TLabel', background=self.COLORS['bg_connection'])
-        style.configure('Options.TLabel', background=self.COLORS['bg_options'])
-        style.configure('Transmit.TLabel', background=self.COLORS['bg_transmit'])
-        style.configure('Macros.TLabel', background=self.COLORS['bg_macros'])
+        style.configure('Connection.TLabel')
+        style.configure('Options.TLabel')
+        style.configure('Transmit.TLabel')
+        style.configure('Macros.TLabel')
         
         # Configure button styles
         style.configure('Connect.TButton', foreground=self.COLORS['fg_connected'])
         style.configure('Disconnect.TButton', foreground=self.COLORS['fg_disconnected'])
         
         # Configure LabelFrame styles
-        style.configure('Connection.TLabelframe', background=self.COLORS['bg_connection'])
-        style.configure('Options.TLabelframe', background=self.COLORS['bg_options'])
-        style.configure('Transmit.TLabelframe', background=self.COLORS['bg_transmit'])
-        style.configure('Macros.TLabelframe', background=self.COLORS['bg_macros'])
-        style.configure('Macros.TLabelframe.Label', background=self.COLORS['bg_macros'])
+        style.configure('Connection.TLabelframe')
+        style.configure('Options.TLabelframe')
+        style.configure('Transmit.TLabelframe')
+        style.configure('Macros.TLabelframe')
+        style.configure('Macros.TLabelframe.Label')
         
         # Configure Notebook tab styles for better visibility
-        style.configure('TNotebook', background=self.COLORS['bg_main'], borderwidth=0)
+        style.configure('TNotebook', borderwidth=0)
         style.configure('TNotebook.Tab', 
                        padding=[20, 12],  # Increased padding for larger tabs
                        font=('Arial', 11, 'bold'))  # Bold font for better visibility
         
         # Configure tab colors for different states
         style.map('TNotebook.Tab',
-                 background=[('selected', '#ffffff'),  # White background for selected tab
+                 background=[('selected', self.COLORS['bg_main']),  # Same background for selected tab
                             ('active', '#e0e0e0')],    # Light gray on hover
                  foreground=[('selected', '#000000'),  # Black text for selected
                             ('active', '#333333')],     # Dark gray on hover
                  expand=[('selected', [1, 1, 1, 0])])  # Expand selected tab
         
         # Custom styles for each tab (for visual differentiation)
-        style.configure('Data.TFrame', background=self.COLORS['tab_data_bg'])
-        style.configure('Hex.TFrame', background=self.COLORS['tab_hex_bg'])
-        style.configure('Host.TFrame', background=self.COLORS['tab_host_bg'])
-        style.configure('Device.TFrame', background=self.COLORS['tab_device_bg'])
+        style.configure('Data.TFrame', background=self.COLORS['bg_main'])
+        style.configure('Hex.TFrame', background=self.COLORS['bg_main'])
+        style.configure('Host.TFrame', background=self.COLORS['bg_main'])
+        style.configure('Device.TFrame', background=self.COLORS['bg_main'])
     
     def create_widgets(self):
         """Create all GUI widgets"""
@@ -177,7 +177,7 @@ class SerialGUI:
         self.setup_styles()
         
         # Top frame - Connection controls with blue background
-        top_frame = tk.Frame(self.root, bg=self.COLORS['bg_connection'], relief=tk.RAISED, bd=1)
+        top_frame = tk.Frame(self.root, bg=self.COLORS['bg_main'])
         top_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
         
         # Port selection
@@ -223,7 +223,7 @@ class SerialGUI:
         self.connect_btn.grid(row=0, column=11, padx=5)
         
         # Options frame with purple background
-        options_frame = tk.Frame(self.root, bg=self.COLORS['bg_options'], relief=tk.RAISED, bd=1)
+        options_frame = tk.Frame(self.root, bg=self.COLORS['bg_main'])
         options_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
         
         # Checkboxes for options with tooltips
@@ -247,25 +247,47 @@ class SerialGUI:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5, pady=5)
         
-        # Data display tab with blue theme
+        # Combined data display tab with format multiplexing
         data_tab = ttk.Frame(self.notebook, style='Data.TFrame')
         self.notebook.add(data_tab, text="📊 Data Display")
         
-        # Add header label for Data Display tab
+        # Add header label for combined Data Display tab
         data_header = tk.Label(data_tab, text="📊 DATA DISPLAY - Real-time Serial Communication",
-                              bg=self.COLORS['tab_data'], fg='white',
+                              fg='#333333',
                               font=('Arial', 14, 'bold'), pady=10)
         data_header.pack(fill=tk.X)
         
-        # Received data display with light blue background - reduced height
+        # Display format controls
+        format_frame = tk.Frame(data_tab, bg=self.COLORS['bg_main'])
+        format_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        # Format selection checkbox
+        self.hex_format_var = tk.BooleanVar(value=False)
+        self.hex_format_checkbox = ttk.Checkbutton(format_frame, text="Display as Hexadecimal",
+                                                  variable=self.hex_format_var,
+                                                  command=self.toggle_display_format)
+        self.hex_format_checkbox.pack(side=tk.LEFT, padx=10)
+        
+        # Clear button for current display
+        ttk.Button(format_frame, text="Clear Display", 
+                  command=self.clear_current_display).pack(side=tk.RIGHT, padx=10)
+        
+        # Text display (ASCII format)
         self.rx_display = scrolledtext.ScrolledText(data_tab, wrap=tk.WORD, width=80, height=15, 
-                                                    font=("Courier", 14), bg='#ffffff', 
+                                                    font=("Courier", 14), 
                                                     relief=tk.SUNKEN, bd=2)
         self.rx_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         self.rx_display.config(state=tk.DISABLED)
         
+        # Hex display (initially hidden)
+        self.hex_display = scrolledtext.ScrolledText(data_tab, wrap=tk.WORD, width=80, height=15, 
+                                                     font=("Courier", 14),
+                                                     relief=tk.SUNKEN, bd=2)
+        self.hex_display.config(state=tk.DISABLED)
+        # Don't pack initially - will be shown/hidden by toggle_display_format()
+        
         # Command section for Data Display tab
-        data_cmd_frame = tk.Frame(data_tab, bg=self.COLORS['bg_transmit'], relief=tk.RAISED, bd=1)
+        data_cmd_frame = tk.Frame(data_tab, bg=self.COLORS['bg_main'])
         data_cmd_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
         # Command entry
@@ -293,7 +315,7 @@ class SerialGUI:
         data_macro_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
         
         # Create container for centered button alignment
-        data_button_container = tk.Frame(data_macro_frame, bg=self.COLORS['bg_macros'])
+        data_button_container = tk.Frame(data_macro_frame, bg=self.COLORS['bg_main'])
         data_button_container.pack(fill=tk.X, padx=10, pady=5)
         
         # Configure equal spacing for buttons
@@ -314,73 +336,44 @@ class SerialGUI:
             btn.grid(row=0, column=i, padx=5, sticky='ew')
         
         # Status bar section for Data Display tab
-        data_status_frame = tk.Frame(data_tab, bg='#424242', relief=tk.SUNKEN, bd=1)
+        data_status_frame = tk.Frame(data_tab, bg=self.COLORS['bg_main'])
         data_status_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
         
         # Connection status indicator (colored circle)
         self.status_indicator = tk.Label(data_status_frame, text="●", font=("Arial", 14),
-                                        bg='#424242', fg=self.COLORS['fg_disconnected'])
+                                        fg=self.COLORS['fg_disconnected'])
         self.status_indicator.pack(side=tk.LEFT, padx=5)
         
         # Status text
         self.status_bar = tk.Label(data_status_frame, text="Disconnected",
-                                  bg='#424242', fg='white', font=("Arial", 10, 'bold'))
+                                  fg='#333333', font=("Arial", 10, 'bold'))
         self.status_bar.pack(side=tk.LEFT, padx=5)
         
         # Port info label (shows port and settings when connected)
         self.port_info_label = tk.Label(data_status_frame, text="",
-                                       bg='#424242', fg='#90CAF9', font=("Arial", 10))
+                                       fg='#1976D2', font=("Arial", 10))
         self.port_info_label.pack(side=tk.LEFT, padx=20)
         
         # Font size label and controls
-        tk.Label(data_status_frame, text="Font Size:", bg='#424242', fg='white',
+        tk.Label(data_status_frame, text="Font Size:", fg='#333333',
                 font=("Arial", 10)).pack(side=tk.RIGHT, padx=5)
         self.font_size_var = tk.IntVar(value=14)
         font_spin = ttk.Spinbox(data_status_frame, from_=10, to=20, width=4,
                                textvariable=self.font_size_var, command=self.update_font_size)
         font_spin.pack(side=tk.RIGHT, padx=5)
         
-        # Create tags for different message types
+        # Create tags for different message types (both displays)
         self.rx_display.tag_config("rx", foreground="blue")
         self.rx_display.tag_config("tx", foreground="green")
         self.rx_display.tag_config("error", foreground="red")
         self.rx_display.tag_config("system", foreground="gray")
         
-        # Hex display tab with purple theme
-        hex_tab = ttk.Frame(self.notebook, style='Hex.TFrame')
-        self.notebook.add(hex_tab, text="🔢 Hex Display")
+        # Same tags for hex display
+        self.hex_display.tag_config("rx", foreground="blue")
+        self.hex_display.tag_config("tx", foreground="green")
+        self.hex_display.tag_config("error", foreground="red")
+        self.hex_display.tag_config("system", foreground="gray")
         
-        # Add header label for Hex Display tab
-        hex_header = tk.Label(hex_tab, text="🔢 HEX DISPLAY - Hexadecimal Data View",
-                             bg=self.COLORS['tab_hex'], fg='white',
-                             font=('Arial', 14, 'bold'), pady=10)
-        hex_header.pack(fill=tk.X)
-        
-        # Hex display with light purple background - reduced height
-        self.hex_display = scrolledtext.ScrolledText(hex_tab, wrap=tk.WORD, width=80, height=15, 
-                                                     font=("Courier", 14), bg='#ffffff',
-                                                     relief=tk.SUNKEN, bd=2)
-        self.hex_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        self.hex_display.config(state=tk.DISABLED)
-        
-        # Command section for Hex Display tab (reference to same controls)
-        hex_cmd_frame = tk.Frame(hex_tab, bg=self.COLORS['bg_transmit'], relief=tk.RAISED, bd=1)
-        hex_cmd_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
-        
-        ttk.Label(hex_cmd_frame, text="Commands available in Data Display tab", 
-                 font=("Arial", 10, "italic")).pack(pady=5)
-        
-        # Simple status indicator for Hex Display tab
-        hex_status_frame = tk.Frame(hex_tab, bg='#424242', relief=tk.SUNKEN, bd=1)
-        hex_status_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
-        
-        # Just show connection status in hex tab
-        tk.Label(hex_status_frame, text="Status:", bg='#424242', fg='white', 
-                font=("Arial", 10, 'bold')).pack(side=tk.LEFT, padx=5)
-        self.hex_status_label = tk.Label(hex_status_frame, text="Disconnected",
-                                        bg='#424242', fg=self.COLORS['fg_disconnected'], 
-                                        font=("Arial", 10))
-        self.hex_status_label.pack(side=tk.LEFT, padx=5)
         
         # Host tab (Protocol Master) with green theme
         host_tab = ttk.Frame(self.notebook, style='Host.TFrame')
@@ -388,7 +381,7 @@ class SerialGUI:
         
         # Add header label for Host tab
         host_header = tk.Label(host_tab, text="📤 HOST MODE - Master Protocol Controller",
-                              bg=self.COLORS['tab_host'], fg='white',
+                              fg='#333333',
                               font=('Arial', 14, 'bold'), pady=10)
         host_header.pack(fill=tk.X)
         
@@ -400,7 +393,7 @@ class SerialGUI:
         
         # Add header label for Device tab
         device_header = tk.Label(device_tab, text="📥 DEVICE MODE - Slave Protocol Simulator",
-                                bg=self.COLORS['tab_device'], fg='white',
+                                fg='#333333',
                                 font=('Arial', 14, 'bold'), pady=10)
         device_header.pack(fill=tk.X)
         
@@ -412,7 +405,7 @@ class SerialGUI:
         
         # Add header label for Modbus TCP Master tab with improved styling
         modbus_master_header = tk.Label(modbus_master_tab, text="🔌   MODBUS TCP MASTER - Client Mode",
-                                       bg='#9C27B0', fg='white',
+                                       fg='#333333',
                                        font=('Arial', 16, 'bold'), pady=12)
         modbus_master_header.pack(fill=tk.X)
         
@@ -424,7 +417,7 @@ class SerialGUI:
         
         # Add header label for Modbus TCP Slave tab with improved styling
         modbus_slave_header = tk.Label(modbus_slave_tab, text="🌐   MODBUS TCP SLAVE - Server Mode",
-                                      bg='#2196F3', fg='white',
+                                      fg='#333333',
                                       font=('Arial', 16, 'bold'), pady=12)
         modbus_slave_header.pack(fill=tk.X)
         
@@ -594,9 +587,8 @@ class SerialGUI:
             self.stopbits_combo.config(state=tk.DISABLED)
             self.refresh_btn.config(state=tk.DISABLED)
             
-            # Update status in both Data Display and Hex Display tabs
+            # Update status display
             self.status_bar.config(text=f"Connected to {port} at {baud} baud")
-            self.hex_status_label.config(text="Connected", fg=self.COLORS['fg_connected'])
             self.add_system_message(f"Connected to {port}")
             
             # Start read thread
@@ -636,7 +628,6 @@ class SerialGUI:
         # Update status with visual indicators
         self.status_indicator.config(fg=self.COLORS['fg_disconnected'])
         self.status_bar.config(text="Disconnected")
-        self.hex_status_label.config(text="Disconnected", fg=self.COLORS['fg_disconnected'])
         self.port_info_label.config(text="")
         self.add_system_message("Disconnected")
     
@@ -776,9 +767,8 @@ class SerialGUI:
             
             self.rx_display.config(state=tk.DISABLED)
             
-            # Update hex display
-            if self.hex_view_enabled.get():
-                self.update_hex_display(data, "RX")
+            # Update hex display (always update for format switching)
+            self.update_hex_display(data, "RX")
             
             # Log to file if enabled
             if self.logging_enabled.get() and self.log_file:
@@ -866,9 +856,8 @@ class SerialGUI:
             
             self.rx_display.config(state=tk.DISABLED)
             
-            # Update hex display if enabled
-            if self.hex_view_enabled.get():
-                self.update_hex_display(command.encode('utf-8'), "TX")
+            # Update hex display (always update for format switching)
+            self.update_hex_display(command.encode('utf-8'), "TX")
             
             # Log to file if enabled
             if self.logging_enabled.get() and self.log_file:
@@ -909,18 +898,42 @@ class SerialGUI:
             self.command_entry.delete(0, tk.END)
     
     def clear_display(self):
-        """Clear data display area"""
+        """Clear ASCII data display area"""
         self.rx_display.config(state=tk.NORMAL)
         self.rx_display.delete(1.0, tk.END)
         self.rx_display.config(state=tk.DISABLED)
         
-        self.add_system_message("Data display cleared")
+        self.add_system_message("ASCII display cleared")
     
     def clear_hex_display(self):
         """Clear hex display area"""
         self.hex_display.config(state=tk.NORMAL)
         self.hex_display.delete(1.0, tk.END)
         self.hex_display.config(state=tk.DISABLED)
+        
+        self.add_system_message("Hexadecimal display cleared")
+    
+    def clear_current_display(self):
+        """Clear currently active display"""
+        if self.hex_format_var.get():
+            self.clear_hex_display()
+        else:
+            self.clear_display()
+    
+    def toggle_display_format(self):
+        """Toggle between ASCII and hexadecimal display formats"""
+        is_hex = self.hex_format_var.get()
+        
+        if is_hex:
+            # Switch to hex display
+            self.rx_display.pack_forget()
+            self.hex_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            self.add_system_message("Switched to hexadecimal display format")
+        else:
+            # Switch to ASCII display
+            self.hex_display.pack_forget()
+            self.rx_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            self.add_system_message("Switched to ASCII display format")
     
     def toggle_logging(self):
         """Toggle file logging"""
@@ -943,15 +956,22 @@ class SerialGUI:
                 self.add_system_message("Logging stopped")
     
     def add_system_message(self, message: str, tag: str = "system"):
-        """Add a system message to the display"""
-        self.rx_display.config(state=tk.NORMAL)
+        """Add a system message to both displays"""
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-        self.rx_display.insert(tk.END, f"[{timestamp}] {message}\n", tag)
         
+        # Add to ASCII display
+        self.rx_display.config(state=tk.NORMAL)
+        self.rx_display.insert(tk.END, f"[{timestamp}] {message}\n", tag)
         if self.auto_scroll_enabled.get():
             self.rx_display.see(tk.END)
-        
         self.rx_display.config(state=tk.DISABLED)
+        
+        # Add to hex display 
+        self.hex_display.config(state=tk.NORMAL)
+        self.hex_display.insert(tk.END, f"[{timestamp}] {message}\n", tag)
+        if self.auto_scroll_enabled.get():
+            self.hex_display.see(tk.END)
+        self.hex_display.config(state=tk.DISABLED)
     
     def on_closing(self):
         """Handle window close event"""
