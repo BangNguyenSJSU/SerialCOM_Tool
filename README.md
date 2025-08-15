@@ -48,6 +48,7 @@ SerialCOM Tool is a professional-grade communication suite designed for engineer
 ### User Interface
 - **Tabbed Interface**: Organized workspace for different protocols
 - **Color-Coded Display**: Visual differentiation of data types and packet components
+- **AI Analysis Integration**: OpenAI-powered intelligent analysis of serial communication data
 - **Search Functionality**: Quick data location in logs and registers
 - **Command History**: Arrow-key navigation through previous commands
 - **Auto-Scroll Control**: Manageable real-time data streams
@@ -81,6 +82,8 @@ SerialCOM Tool is a professional-grade communication suite designed for engineer
 - Python 3.7 or higher
 - tkinter (usually included with Python)
 - pyserial library
+- openai library (for AI analysis features)
+- cryptography library (for secure API key storage)
 
 ### Setup Instructions
 
@@ -291,6 +294,41 @@ brew install socat
    - Monitor incoming requests
    - View automatic responses
 
+## AI Analysis Features
+
+### OpenAI Integration
+SerialCOM Tool includes intelligent analysis capabilities powered by OpenAI's GPT models to help debug and understand serial communication patterns.
+
+#### Key Features
+- **Real-time Analysis**: Automatic analysis of complete RX messages
+- **Protocol Detection**: Identifies communication protocols and patterns
+- **Error Analysis**: Detects and explains communication errors
+- **Pattern Recognition**: Identifies data structures and repetitive patterns
+- **Smart Suggestions**: Provides actionable debugging recommendations
+- **Secure API Key Storage**: Encrypted storage of API credentials
+
+#### Analysis Types
+- **Protocol Analysis**: Identifies packet structures, checksums, and protocol compliance
+- **Error Detection**: Finds malformed packets, timing issues, and protocol violations
+- **Pattern Recognition**: Detects command-response sequences and data relationships
+- **General Insights**: Provides context for unknown or custom protocols
+
+#### Configuration
+1. **API Key Setup**: Navigate to Data Display tab and click "AI Settings"
+2. **Enter OpenAI API Key**: Provide your OpenAI API key for analysis
+3. **Configure Analysis**: Adjust analysis types and rate limits
+4. **Enable Analysis**: Toggle "Enable AI Analysis" to start automatic analysis
+
+#### Analysis Triggers
+- **Complete RX Messages**: Triggers after complete lines (ending with \n or \r)
+- **Large Data Blocks**: Analyzes buffers exceeding 1024 bytes
+- **Connection End**: Processes remaining data when disconnecting
+
+#### Visual Feedback
+- **Color-coded Results**: Different colors for protocol, error, pattern, and insight analysis
+- **Real-time Display**: Analysis appears alongside communication data
+- **Status Indicators**: Shows analysis progress and API status
+
 ## Communication Protocols
 
 ### Serial Communication
@@ -482,6 +520,9 @@ SerialCOM_Tool/
 ├── modbus_tcp_protocol.py    # Modbus protocol
 ├── modbus_tcp_slave_tab.py   # Modbus server
 ├── modbus_tcp_master_tab.py  # Modbus client
+├── ai_analyzer.py            # AI analysis engine
+├── ai_config.py              # AI configuration management
+├── ai_settings_dialog.py     # AI settings interface
 ├── test_protocol.py          # Protocol tests
 ├── test_modbus_tcp.py        # Modbus tests
 └── create_ports.sh           # Virtual ports script
@@ -496,6 +537,15 @@ graph TB
         RT[Read Thread<br/>Serial Port Reader]
         Q[Data Queue<br/>Thread-Safe Buffer]
         SP[Serial Port<br/>pyserial Instance]
+        AIQ[AI Queue<br/>Analysis Results]
+    end
+    
+    subgraph "AI Analysis Layer"
+        AIA[AI Analyzer<br/>OpenAI Integration]
+        AIC[AI Config<br/>Encrypted Storage]
+        AIS[AI Settings<br/>Configuration UI]
+        AIR[Rate Limiter<br/>60 req/min]
+        AIH[Analysis History<br/>Last 100 Results]
     end
     
     subgraph "Protocol Layer (protocol.py)"
@@ -506,7 +556,7 @@ graph TB
     end
     
     subgraph "Application Tabs"
-        DT[Data Tab<br/>Raw Display]
+        DT[Data Tab<br/>Raw Display + AI]
         HX[Hex Tab<br/>Hex View]
         HT[Host Tab<br/>Master Mode]
         DV[Device Tab<br/>Slave Mode]
@@ -514,11 +564,27 @@ graph TB
         MTM[Modbus TCP Master<br/>Client Mode]
     end
     
+    subgraph "External Services"
+        OPENAI[OpenAI API<br/>GPT-3.5-turbo]
+        FS[File System<br/>Encrypted Config]
+    end
+    
     %% Serial Port Connections
     SP -->|Read| RT
     RT -->|Queue Data| Q
     Q -->|Update Display| GUI
     GUI -->|Write| SP
+    
+    %% AI Integration Flow
+    RT -->|Complete RX Messages| AIA
+    AIA -->|Analysis Results| AIQ
+    AIQ -->|Color-coded Display| DT
+    AIA -->|Store Results| AIH
+    AIR -->|Rate Control| AIA
+    AIA <-->|API Calls| OPENAI
+    AIC <-->|Load/Save Keys| FS
+    AIS -->|Configure| AIC
+    DT -->|Settings Access| AIS
     
     %% Tab Connections
     GUI --> DT
@@ -542,6 +608,19 @@ graph TB
     RT -->|Raw Data| HT
     DV -->|Response| SP
     HT -->|Request| SP
+    
+    %% Styling
+    classDef aiClass fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    classDef protocolClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef tabClass fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef externalClass fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef mainClass fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    
+    class AIA,AIC,AIS,AIR,AIH,AIQ aiClass
+    class PB,PP,F16,REG protocolClass
+    class DT,HX,HT,DV,MTS,MTM tabClass
+    class OPENAI,FS externalClass
+    class GUI,RT,Q,SP mainClass
 ```
 
 ### Protocol Communication Flow
@@ -620,6 +699,70 @@ flowchart LR
     EX -.->|Generate Response| CR
 ```
 
+### AI Analysis Flow
+
+```mermaid
+sequenceDiagram
+    participant SP as Serial Port
+    participant RT as Read Thread
+    participant BUF as Buffer Assembly
+    participant AIA as AI Analyzer
+    participant OAI as OpenAI API
+    participant GUI as GUI Display
+    participant AIC as AI Config
+    
+    Note over SP,GUI: AI-Enhanced Serial Communication Flow
+    
+    SP->>RT: Raw data bytes
+    RT->>BUF: Accumulate data
+    
+    alt Complete Line Detected (\n or \r)
+        BUF->>RT: Complete message found
+        RT->>AIA: Trigger analysis (complete RX)
+        
+        AIA->>AIA: Check rate limiter (60/min)
+        AIA->>AIA: Determine analysis type
+        AIA->>AIA: Generate AI prompt
+        
+        AIA->>OAI: API request with message data
+        OAI-->>AIA: Analysis response (JSON)
+        
+        AIA->>AIA: Parse response & create AnalysisResult
+        AIA->>AIA: Store in history (last 100)
+        AIA->>GUI: Queue analysis result
+        
+        GUI->>GUI: Display with color coding
+        Note over GUI: Color: Blue(protocol), Red(error), Purple(pattern), Green(insight)
+        
+    else Large Buffer (>1024 bytes)
+        BUF->>RT: Buffer size exceeded
+        RT->>AIA: Trigger analysis (large chunk)
+        Note over AIA,OAI: Same analysis flow as above
+        
+    else Connection Ends
+        RT->>AIA: Process remaining data
+        Note over AIA,OAI: Same analysis flow as above
+        
+    else Rate Limited
+        AIA->>AIA: Skip analysis
+        Note over AIA: Wait for rate limit reset
+    end
+    
+    Note over SP,GUI: Configuration & Security
+    GUI->>AIC: User configures AI settings
+    AIC->>AIC: Encrypt & store API key (PBKDF2+Fernet)
+    AIC-->>GUI: Settings saved securely
+    
+    Note over SP,GUI: Error Handling
+    alt API Error
+        OAI-->>AIA: Error response
+        AIA->>GUI: Display error analysis result
+    else Network Error
+        AIA->>AIA: Create error AnalysisResult
+        AIA->>GUI: Show connection issue
+    end
+```
+
 ### Threading Model & Synchronization
 
 ```mermaid
@@ -628,12 +771,17 @@ graph TD
         MT[Main Thread<br/>GUI Event Loop]
         RT[Read Thread<br/>Serial Reading]
         DQ[Data Queue<br/>thread.Queue]
+        AIQ[AI Queue<br/>Analysis Results]
+        AT[AI Analysis Thread<br/>Background Processing]
         NT1[Network Thread 1<br/>Modbus TCP Server]
         NT2[Network Thread 2<br/>Modbus TCP Client]
         
         MT -->|after 25ms| UPDATE[update_gui]
         UPDATE -->|Process Queue| DQ
+        UPDATE -->|Process AI Results| AIQ
         RT -->|Put Data| DQ
+        RT -->|Complete RX Messages| AT
+        AT -->|Analysis Results| AIQ
         NT1 -->|Socket Accept| CLIENT[Client Handler]
         NT2 -->|Socket Connect| SERVER[Server Connection]
         
@@ -642,6 +790,8 @@ graph TD
             TS2[Serial Read<br/>Separate Thread]
             TS3[Queue Operations<br/>Thread-Safe]
             TS4[Socket Operations<br/>Thread-Safe]
+            TS5[AI Processing<br/>Background Thread]
+            TS6[Rate Limiting<br/>Thread-Safe Lock]
         end
     end
     
@@ -650,6 +800,8 @@ graph TD
         R2[Thread Sleep<br/>5ms]
         G1[GUI Update<br/>25ms interval]
         T1[Tab Processing<br/>5ms interval]
+        A1[AI Analysis<br/>1-3s response]
+        A2[Rate Limit<br/>60 req/minute]
         N1[Network Timeout<br/>Configurable]
     end
     
@@ -657,8 +809,14 @@ graph TD
     R1 --> R2
     MT --> G1
     G1 --> T1
+    AT --> A1
+    AT --> A2
     NT1 --> N1
     NT2 --> N1
+    
+    %% AI Styling
+    classDef aiThread fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    class AT,AIQ,TS5,TS6,A1,A2 aiThread
 ```
 
 ### Module Dependencies
@@ -670,11 +828,19 @@ graph BT
         PS[pyserial<br/>Serial Communication]
         SOCK[socket<br/>TCP/IP Networking]
         STD[Python stdlib<br/>threading, queue, etc.]
+        OAI[openai<br/>AI Analysis API]
+        CRYPT[cryptography<br/>Secure Key Storage]
     end
     
     subgraph "Core Modules"
         MAIN[serial_gui.py<br/>Main Application]
         PROT[protocol.py<br/>Custom Protocol]
+    end
+    
+    subgraph "AI Analysis Modules"
+        AIA[ai_analyzer.py<br/>AI Analysis Engine]
+        AIC[ai_config.py<br/>Configuration Management]
+        AIS[ai_settings_dialog.py<br/>Settings Interface]
     end
     
     subgraph "Tab Modules"
@@ -688,6 +854,7 @@ graph BT
         MTM[modbus_tcp_master_tab.py<br/>Modbus Client]
     end
     
+    %% Core Dependencies
     MAIN --> TK
     MAIN --> PS
     MAIN --> STD
@@ -695,6 +862,19 @@ graph BT
     DEV --> PROT
     MAIN --> HOST
     MAIN --> DEV
+    
+    %% AI Dependencies
+    MAIN --> AIA
+    MAIN --> AIC
+    MAIN --> AIS
+    AIA --> OAI
+    AIA --> STD
+    AIC --> CRYPT
+    AIC --> STD
+    AIS --> TK
+    AIS --> AIC
+    
+    %% Modbus Dependencies
     MTP --> STD
     MTS --> MTP
     MTS --> SOCK
@@ -703,14 +883,20 @@ graph BT
     MAIN --> MTS
     MAIN --> MTM
     
+    %% Styling
     style TK fill:#e1f5fe
     style PS fill:#e1f5fe
     style SOCK fill:#e1f5fe
     style STD fill:#e1f5fe
+    style OAI fill:#e1f5fe
+    style CRYPT fill:#e1f5fe
     style MAIN fill:#fff3e0
     style PROT fill:#f3e5f5
-    style HOST fill:#e8f5e9
-    style DEV fill:#e8f5e9
+    style AIA fill:#e8f5e9
+    style AIC fill:#e8f5e9
+    style AIS fill:#e8f5e9
+    style HOST fill:#f1f8e9
+    style DEV fill:#f1f8e9
     style MTP fill:#fce4ec
     style MTS fill:#fce4ec
     style MTM fill:#fce4ec
@@ -1060,4 +1246,4 @@ For issues or questions:
 
 ---
 
-**Version 4.2** | **Last Updated: January 2025**
+**Version 4.3** | **Last Updated: August 2025**

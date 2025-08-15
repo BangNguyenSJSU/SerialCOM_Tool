@@ -6,6 +6,12 @@ pyserial>=3.5              # Serial port communication library
                            # Provides cross-platform serial port access
                            # Used for all serial I/O operations
 
+# AI Analysis Dependencies
+openai>=1.12.0             # OpenAI API client for AI-powered analysis
+                           # Provides intelligent analysis of serial communication data
+cryptography>=41.0.0       # Secure encryption for API key storage
+                           # Used for encrypting/decrypting stored API keys
+
 # Standard Library Dependencies (included with Python)
 # These are listed for documentation purposes only:
 # - tkinter               # GUI framework (usually included with Python)

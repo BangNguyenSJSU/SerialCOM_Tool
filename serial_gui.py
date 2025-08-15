@@ -20,6 +20,9 @@ from host_tab import HostTab
 from device_tab import DeviceTab
 from modbus_tcp_slave_tab import ModbusTCPSlaveTab
 from modbus_tcp_master_tab import ModbusTCPMasterTab
+from ai_analyzer import AIAnalyzer
+from ai_config import AIConfig
+from ai_settings_dialog import AISettingsDialog
 
 
 class ToolTip:
@@ -106,6 +109,13 @@ class SerialGUI:
         self.data_queue = queue.Queue()
         self.read_thread: Optional[threading.Thread] = None  # Background thread for reading serial data
         self.running = False  # Flag to control read thread execution
+        
+        # AI Analysis components
+        self.ai_config = AIConfig()
+        self.ai_analyzer: Optional[AIAnalyzer] = None
+        self.ai_queue = queue.Queue()  # Queue for AI analysis results
+        self.ai_enabled = tk.BooleanVar(value=False)
+        self.ai_data_buffer = []  # Buffer for recent data for pattern analysis
         
         # User configurable settings
         self.hex_view_enabled = tk.BooleanVar(value=False)  # Toggle hex display mode
@@ -335,6 +345,37 @@ class SerialGUI:
                            command=lambda cmd=command: self.send_macro(cmd))
             btn.grid(row=0, column=i, padx=5, sticky='ew')
         
+        # AI Analysis section for Data Display tab
+        ai_analysis_frame = ttk.LabelFrame(data_tab, text="🤖 AI Analysis", padding="5")
+        ai_analysis_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
+        
+        # AI Controls
+        ai_controls = tk.Frame(ai_analysis_frame, bg=self.COLORS['bg_main'])
+        ai_controls.pack(fill=tk.X, padx=5, pady=5)
+        
+        # AI Analysis Toggle Button
+        self.ai_toggle_btn = ttk.Button(ai_controls, text="Enable AI Analysis", 
+                                       command=self.toggle_ai_analysis)
+        self.ai_toggle_btn.pack(side=tk.LEFT, padx=5)
+        
+        # API Key Status Indicator
+        self.ai_status = tk.Label(ai_controls, text="API Key: Not Set", 
+                                 fg='#CC0000', font=("Arial", 9))
+        self.ai_status.pack(side=tk.LEFT, padx=10)
+        
+        # AI Settings Button
+        self.ai_settings_btn = ttk.Button(ai_controls, text="AI Settings", 
+                                         command=self.open_ai_settings)
+        self.ai_settings_btn.pack(side=tk.RIGHT, padx=5)
+        
+        # AI Statistics display
+        self.ai_stats_label = tk.Label(ai_controls, text="", 
+                                      fg='#666666', font=("Arial", 8))
+        self.ai_stats_label.pack(side=tk.RIGHT, padx=10)
+        
+        # Initialize AI status
+        self.update_ai_status()
+        
         # Status bar section for Data Display tab
         data_status_frame = tk.Frame(data_tab, bg=self.COLORS['bg_main'])
         data_status_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
@@ -368,11 +409,31 @@ class SerialGUI:
         self.rx_display.tag_config("error", foreground="red")
         self.rx_display.tag_config("system", foreground="gray")
         
+        # AI Analysis Tags
+        self.rx_display.tag_config("ai_insight", foreground="#FF6600", 
+                                  background="#FFF8E0", font=("Courier", 14, "bold"))
+        self.rx_display.tag_config("ai_protocol", foreground="#8B008B", 
+                                  background="#FFF0FF", font=("Courier", 14, "bold"))
+        self.rx_display.tag_config("ai_error", foreground="#DC143C", 
+                                  background="#FFE4E1", font=("Courier", 14, "bold"))
+        self.rx_display.tag_config("ai_pattern", foreground="#006400", 
+                                  background="#F0FFF0", font=("Courier", 14, "bold"))
+        
         # Same tags for hex display
         self.hex_display.tag_config("rx", foreground="blue")
         self.hex_display.tag_config("tx", foreground="green")
         self.hex_display.tag_config("error", foreground="red")
         self.hex_display.tag_config("system", foreground="gray")
+        
+        # AI Analysis Tags for hex display
+        self.hex_display.tag_config("ai_insight", foreground="#FF6600", 
+                                   background="#FFF8E0", font=("Courier", 14, "bold"))
+        self.hex_display.tag_config("ai_protocol", foreground="#8B008B", 
+                                   background="#FFF0FF", font=("Courier", 14, "bold"))
+        self.hex_display.tag_config("ai_error", foreground="#DC143C", 
+                                   background="#FFE4E1", font=("Courier", 14, "bold"))
+        self.hex_display.tag_config("ai_pattern", foreground="#006400", 
+                                   background="#F0FFF0", font=("Courier", 14, "bold"))
         
         
         # Host tab (Protocol Master) with green theme
@@ -672,36 +733,73 @@ class SerialGUI:
                         self.host_tab.handle_raw_data(data)
                     except:
                         pass  # Don't let host tab errors break main serial reading
+                
+                # AI Analysis will be triggered after complete RX messages below
+                
+                buffer += data
+                
+                # Process complete lines
+                while b'\n' in buffer or b'\r' in buffer:
+                    # Find line ending
+                    idx_n = buffer.find(b'\n')
+                    idx_r = buffer.find(b'\r')
                     
-                    buffer += data
+                    if idx_n == -1:
+                        idx = idx_r
+                    elif idx_r == -1:
+                        idx = idx_n
+                    else:
+                        idx = min(idx_n, idx_r)
                     
-                    # Process complete lines
-                    while b'\n' in buffer or b'\r' in buffer:
-                        # Find line ending
-                        idx_n = buffer.find(b'\n')
-                        idx_r = buffer.find(b'\r')
-                        
-                        if idx_n == -1:
-                            idx = idx_r
-                        elif idx_r == -1:
-                            idx = idx_n
-                        else:
-                            idx = min(idx_n, idx_r)
-                        
-                        line = buffer[:idx]
-                        buffer = buffer[idx+1:]
-                        
-                        # Skip if it's just another line ending character
-                        if len(buffer) > 0 and buffer[0:1] in (b'\n', b'\r'):
-                            buffer = buffer[1:]
-                        
-                        if line:
-                            self.data_queue.put(('rx', line))
+                    line = buffer[:idx]
+                    buffer = buffer[idx+1:]
                     
-                    # If buffer gets too large without line endings, process it anyway
-                    if len(buffer) > 1024:
-                        self.data_queue.put(('rx', buffer))
-                        buffer = b""
+                    # Skip if it's just another line ending character
+                    if len(buffer) > 0 and buffer[0:1] in (b'\n', b'\r'):
+                        buffer = buffer[1:]
+                    
+                    if line:
+                        self.data_queue.put(('rx', line))
+                        
+                        # AI Analysis Integration - Trigger after complete RX message
+                        if self.ai_enabled.get() and self.ai_analyzer:
+                            try:
+                                # Add to AI analysis buffer
+                                self.ai_data_buffer.append(line)
+                                if len(self.ai_data_buffer) > 20:  # Keep last 20 messages
+                                    self.ai_data_buffer.pop(0)
+                                
+                                # Trigger AI analysis (async) for complete message
+                                threading.Thread(
+                                    target=self.perform_ai_analysis,
+                                    args=(line, self.ai_data_buffer.copy()),
+                                    daemon=True
+                                ).start()
+                            except Exception as e:
+                                self.ai_queue.put(('analysis_error', str(e), line))
+                
+                # If buffer gets too large without line endings, process it anyway
+                if len(buffer) > 1024:
+                    self.data_queue.put(('rx', buffer))
+                    
+                    # AI Analysis Integration - Trigger for large buffer chunks
+                    if self.ai_enabled.get() and self.ai_analyzer:
+                        try:
+                            # Add to AI analysis buffer
+                            self.ai_data_buffer.append(buffer)
+                            if len(self.ai_data_buffer) > 20:  # Keep last 20 messages
+                                self.ai_data_buffer.pop(0)
+                            
+                            # Trigger AI analysis (async) for complete message
+                            threading.Thread(
+                                target=self.perform_ai_analysis,
+                                args=(buffer, self.ai_data_buffer.copy()),
+                                daemon=True
+                            ).start()
+                        except Exception as e:
+                            self.ai_queue.put(('analysis_error', str(e), buffer))
+                    
+                    buffer = b""
                         
             except serial.SerialException as e:
                 self.data_queue.put(('error', f"Read error: {str(e)}"))
@@ -716,6 +814,23 @@ class SerialGUI:
         # Process any remaining data in buffer
         if buffer:
             self.data_queue.put(('rx', buffer))
+            
+            # AI Analysis Integration - Trigger for remaining buffer data
+            if self.ai_enabled.get() and self.ai_analyzer:
+                try:
+                    # Add to AI analysis buffer
+                    self.ai_data_buffer.append(buffer)
+                    if len(self.ai_data_buffer) > 20:  # Keep last 20 messages
+                        self.ai_data_buffer.pop(0)
+                    
+                    # Trigger AI analysis (async) for remaining data
+                    threading.Thread(
+                        target=self.perform_ai_analysis,
+                        args=(buffer, self.ai_data_buffer.copy()),
+                        daemon=True
+                    ).start()
+                except Exception as e:
+                    self.ai_queue.put(('analysis_error', str(e), buffer))
     
     def update_gui(self):
         """Update GUI with data from queue.
@@ -736,6 +851,19 @@ class SerialGUI:
                     # Auto-disconnect on error
                     if self.is_connected:
                         self.disconnect_serial()
+                        
+            except queue.Empty:
+                break
+        
+        # Process AI analysis results
+        while not self.ai_queue.empty():
+            try:
+                ai_msg_type, ai_data, original_data = self.ai_queue.get_nowait()
+                
+                if ai_msg_type == 'analysis_result':
+                    self.display_ai_analysis(ai_data, original_data)
+                elif ai_msg_type == 'analysis_error':
+                    self.add_system_message(f"🤖 AI Error: {ai_data}", "error")
                         
             except queue.Empty:
                 break
@@ -972,6 +1100,133 @@ class SerialGUI:
         if self.auto_scroll_enabled.get():
             self.hex_display.see(tk.END)
         self.hex_display.config(state=tk.DISABLED)
+    
+    # AI Analysis Methods
+    def update_ai_status(self):
+        """Update AI status display"""
+        if self.ai_config.has_api_key():
+            self.ai_status.config(text="API Key: Configured", fg='#006400')
+            
+            # Try to initialize analyzer if not already done
+            if self.ai_analyzer is None:
+                api_key = self.ai_config.load_api_key()
+                if api_key:
+                    self.ai_analyzer = AIAnalyzer(api_key)
+                    if self.ai_analyzer.is_enabled:
+                        self.ai_status.config(text="API Key: Ready", fg='#006400')
+                    else:
+                        self.ai_status.config(text="API Key: Invalid", fg='#CC0000')
+        else:
+            self.ai_status.config(text="API Key: Not Set", fg='#CC0000')
+        
+        # Update button state
+        if self.ai_analyzer and self.ai_analyzer.is_enabled:
+            self.ai_toggle_btn.config(state=tk.NORMAL)
+        else:
+            self.ai_toggle_btn.config(state=tk.DISABLED)
+            self.ai_enabled.set(False)
+            
+        # Update toggle button text
+        if self.ai_enabled.get():
+            self.ai_toggle_btn.config(text="Disable AI Analysis")
+        else:
+            self.ai_toggle_btn.config(text="Enable AI Analysis")
+    
+    def toggle_ai_analysis(self):
+        """Toggle AI analysis on/off"""
+        if not self.ai_analyzer or not self.ai_analyzer.is_enabled:
+            messagebox.showwarning("AI Analysis", "Please configure a valid API key first.")
+            self.open_ai_settings()
+            return
+        
+        current_state = self.ai_enabled.get()
+        self.ai_enabled.set(not current_state)
+        
+        if self.ai_enabled.get():
+            self.ai_toggle_btn.config(text="Disable AI Analysis")
+            self.add_system_message("🤖 AI Analysis enabled", "ai_insight")
+        else:
+            self.ai_toggle_btn.config(text="Enable AI Analysis")
+            self.add_system_message("🤖 AI Analysis disabled", "system")
+        
+        # Update statistics display
+        self.update_ai_stats_display()
+    
+    def open_ai_settings(self):
+        """Open AI settings dialog"""
+        AISettingsDialog(self.root, self.ai_config, self.update_ai_status)
+    
+    def perform_ai_analysis(self, data: bytes, history: List[bytes]):
+        """Perform AI analysis in background thread"""
+        if not self.ai_analyzer or not self.ai_enabled.get():
+            return
+            
+        try:
+            # Analyze data using OpenAI API
+            result = self.ai_analyzer.analyze_data(data, history)
+            
+            if result:
+                # Queue result for GUI update
+                self.ai_queue.put(('analysis_result', result, data))
+            
+        except Exception as e:
+            self.ai_queue.put(('analysis_error', str(e), data))
+    
+    def display_ai_analysis(self, analysis, original_data: bytes):
+        """Display AI analysis results with visual highlighting"""
+        try:
+            # Add AI insight message
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+            confidence_str = f"({analysis.confidence:.1%})" if hasattr(analysis, 'confidence') else ""
+            insight_msg = f"[{timestamp}] 🤖 AI {confidence_str}: {analysis.description}"
+            
+            # Determine tag based on analysis type and confidence
+            if hasattr(analysis, 'analysis_type'):
+                if analysis.analysis_type == "error":
+                    tag = "ai_error"
+                elif analysis.analysis_type == "protocol":
+                    tag = "ai_protocol"
+                elif analysis.analysis_type == "pattern":
+                    tag = "ai_pattern"
+                else:
+                    tag = "ai_insight"
+            else:
+                tag = "ai_insight"
+            
+            # Add to displays
+            for display in [self.rx_display, self.hex_display]:
+                display.config(state=tk.NORMAL)
+                display.insert(tk.END, f"{insight_msg}\n", tag)
+                
+                # Add suggestions if available
+                if hasattr(analysis, 'suggestions') and analysis.suggestions:
+                    for suggestion in analysis.suggestions[:3]:  # Limit to 3 suggestions
+                        suggestion_msg = f"    💡 {suggestion}\n"
+                        display.insert(tk.END, suggestion_msg, "ai_insight")
+                
+                if self.auto_scroll_enabled.get():
+                    display.see(tk.END)
+                
+                display.config(state=tk.DISABLED)
+            
+            # Update statistics
+            self.update_ai_stats_display()
+            
+        except Exception as e:
+            self.add_system_message(f"AI Display Error: {e}", "error")
+    
+    def update_ai_stats_display(self):
+        """Update AI statistics display"""
+        if self.ai_analyzer:
+            stats = self.ai_analyzer.get_statistics()
+            if stats and stats.get("total_analyses", 0) > 0:
+                total = stats["total_analyses"]
+                avg_conf = stats.get("average_confidence", 0)
+                self.ai_stats_label.config(text=f"Analyses: {total} | Avg Confidence: {avg_conf:.1%}")
+            else:
+                self.ai_stats_label.config(text="")
+        else:
+            self.ai_stats_label.config(text="")
     
     def on_closing(self):
         """Handle window close event"""

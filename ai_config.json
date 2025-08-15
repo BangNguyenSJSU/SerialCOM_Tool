@@ -1,0 +1,26 @@
+{
+  "analysis_settings": {
+    "model": "gpt-3.5-turbo",
+    "max_tokens": 500,
+    "temperature": 0.3,
+    "analyze_protocol": true,
+    "analyze_errors": true,
+    "analyze_patterns": true,
+    "min_data_length": 4,
+    "max_data_length": 1024,
+    "rate_limit_per_minute": 20,
+    "auto_analysis": true,
+    "analysis_delay_ms": 1000
+  },
+  "ui_settings": {
+    "show_confidence": true,
+    "show_suggestions": true,
+    "highlight_analysis": true,
+    "analysis_history_limit": 100
+  },
+  "api_settings": {
+    "timeout_seconds": 30,
+    "retry_attempts": 3,
+    "retry_delay_seconds": 2
+  }
+}
