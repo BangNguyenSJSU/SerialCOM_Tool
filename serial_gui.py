@@ -605,13 +605,18 @@ class SerialGUI:
     def disconnect_serial(self):
         """Close serial connection"""
         self.running = False
-        
+
         if self.serial_port and self.serial_port.is_open:
             try:
                 self.serial_port.close()
             except:
                 pass
-        
+
+        # Ensure the read thread is properly stopped
+        if self.read_thread and self.read_thread.is_alive():
+            self.read_thread.join(timeout=0.5)
+        self.read_thread = None
+
         self.is_connected = False
         self.serial_port = None
         
