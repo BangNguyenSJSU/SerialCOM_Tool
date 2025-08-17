@@ -13,10 +13,8 @@ from protocol import (
     Packet, PacketBuilder, PacketParser, 
     FunctionCode, ErrorCode, RegisterMap
 )
-from ui_styles import (
-    FONTS, SPACING, COLORS, init_style, create_status_pill, 
-    update_status_pill, configure_text_widget, GRID_OPTS
-)
+from ui_styles import FONTS, SPACING, COLORS
+from serial_connection import SerialConnection
 
 
 class HostTab:
@@ -30,18 +28,20 @@ class HostTab:
     
     # Using shared color scheme from ui_styles
     
-    def __init__(self, parent_frame: ttk.Frame, serial_port_getter, data_queue: queue.Queue):
+    def __init__(self, parent_frame: ttk.Frame):
         """
         Initialize Host Tab.
         
         Args:
             parent_frame: Parent Tkinter frame
-            serial_port_getter: Callable that returns current serial port
-            data_queue: Shared queue for serial data
         """
         self.frame = parent_frame
-        self.get_serial_port = serial_port_getter
-        self.data_queue = data_queue
+        
+        # Create independent serial connection for Host tab
+        self.serial_connection = SerialConnection(parent_frame, self.on_data_received)
+        
+        # Create internal data queue for protocol responses
+        self.data_queue = queue.Queue()
         
         # Protocol state management
         self.message_id = 0  # Current message ID (auto-increments)
@@ -59,7 +59,8 @@ class HostTab:
     
     def setup_styles(self):
         """Configure ttk styles with shared design system"""
-        return init_style()
+        style = ttk.Style()
+        return style
     
     def create_widgets(self):
         """Create Host tab UI elements"""
@@ -72,38 +73,38 @@ class HostTab:
         
         # Top section (full width) - Device Address and Register Operation
         top_section = tk.Frame(main_frame)
-        top_section.pack(fill=tk.X, pady=(0, SPACING['pady_large']))
+        top_section.pack(fill=tk.X, pady=(0, 10))
         
         # Device Address Section - using shared styling
         addr_frame = ttk.LabelFrame(top_section, text="Device Address", 
                                    style="Section.TLabelframe")
-        addr_frame.pack(fill=tk.X, pady=(0, SPACING['pady_large']), padx=SPACING['padx'])
+        addr_frame.pack(fill=tk.X, pady=(0, 10), padx=SPACING['padx'])
         
         # Create inner frame for grid layout with consistent padding
         addr_content = ttk.Frame(addr_frame)
         addr_content.pack(fill=tk.X, padx=10, pady=8)
         
         # Address field - aligned to grid
-        ttk.Label(addr_content, text="Address (0-247):").grid(row=0, column=0, **GRID_OPTS['label'])
+        ttk.Label(addr_content, text="Address (0-247):").grid(row=0, column=0, sticky='e', padx=(0, 6), pady=2)
         self.device_addr_var = tk.IntVar(value=1)
         self.device_addr_spin = ttk.Spinbox(addr_content, from_=0, to=247, 
                                            textvariable=self.device_addr_var, width=12)
         self.device_addr_spin.grid(row=0, column=1, padx=(0, 10), sticky='w')
         self.device_addr_var.trace('w', lambda *args: self.update_preview())
-        ttk.Label(addr_content, text="(0 = Broadcast)", font=FONTS["ui_small"], foreground="#6B7280").grid(row=0, column=2, padx=(2, 20), sticky='w')
+        ttk.Label(addr_content, text="(0 = Broadcast)", font=FONTS["default"], foreground="#6B7280").grid(row=0, column=2, padx=(2, 20), sticky='w')
         
         # Message ID field - aligned to same grid
-        ttk.Label(addr_content, text="Message ID:").grid(row=0, column=3, **GRID_OPTS['label'])
+        ttk.Label(addr_content, text="Message ID:").grid(row=0, column=3, sticky='e', padx=(0, 6), pady=2)
         self.msg_id_var = tk.StringVar(value=f"{self.message_id:02X}")
         self.msg_id_entry = ttk.Entry(addr_content, textvariable=self.msg_id_var, width=12, font=FONTS["mono"])
         self.msg_id_entry.grid(row=0, column=4, padx=(0, 10), sticky='w')
         self.msg_id_var.trace('w', self.on_message_id_change)
-        ttk.Label(addr_content, text="(00-FF hex)", font=FONTS["ui_small"], foreground="#6B7280").grid(row=0, column=5, sticky='w', padx=(2, 0), pady=2)
+        ttk.Label(addr_content, text="(00-FF hex)", font=FONTS["default"], foreground="#6B7280").grid(row=0, column=5, sticky='w', padx=(2, 0), pady=2)
         
         # Operation Selection - using shared styling
         op_frame = ttk.LabelFrame(top_section, text="Register Operation", 
                                  style="Section.TLabelframe")
-        op_frame.pack(fill=tk.X, pady=(0, SPACING['pady_large']), padx=SPACING['padx'])
+        op_frame.pack(fill=tk.X, pady=(0, 10), padx=SPACING['padx'])
         
         # Operation type radio buttons with even spacing using grid
         self.operation_var = tk.StringVar(value="read_single")
@@ -222,7 +223,7 @@ class HostTab:
         
         # Timeout indicator (shows countdown when waiting for response)
         self.timeout_indicator = ttk.Label(control_content, text="",
-                                         foreground='orange', font=FONTS['ui_bold'], width=15)
+                                         foreground='orange', font=FONTS['default'], width=15)
         self.timeout_indicator.grid(row=0, column=4, padx=10, sticky='w')
         
         # Packet Preview with amber background and parsed fields
@@ -238,22 +239,26 @@ class HostTab:
         
         # Hex preview section - aligned labels
         ttk.Label(preview_container, text="Hex Bytes:",
-                font=FONTS['ui_bold'], width=12, anchor='e').grid(row=0, column=0, 
+                font=FONTS['default'], width=12, anchor='e').grid(row=0, column=0, 
                 padx=(0, 10), pady=3, sticky='e')
         self.preview_text = tk.Text(preview_container, height=6, width=50, font=FONTS['mono'],
                                    relief=tk.SUNKEN, bd=1)
         self.preview_text.grid(row=0, column=1, pady=3, sticky='ew')
         
         # Configure color tags for preview_text
-        configure_text_widget(self.preview_text, "preview")
-        self.preview_text.tag_config("hex_data", foreground="#0066CC", font=FONTS['mono_bold'])
+        self.preview_text.configure(font=FONTS["mono"], borderwidth=0, highlightthickness=0)
+        self.preview_text.tag_config("header", font=FONTS["mono"], foreground="#1F4B99")
+        self.preview_text.tag_config("field", font=FONTS["mono"], foreground="#2E2E2E")
+        self.preview_text.tag_config("value", font=FONTS["mono"], foreground="#065F46")
+        self.preview_text.tag_config("hex", font=FONTS["mono"], foreground="#6B21A8")
+        self.preview_text.tag_config("address", font=FONTS["mono"], foreground="#B45309")
+        self.preview_text.tag_config("hex_data", foreground="#0066CC", font=FONTS['mono'])
         self.preview_text.tag_config("label", foreground="#666666", font=FONTS['mono'])
-        self.preview_text.tag_config("value", foreground="#009900", font=FONTS['mono_bold'])
-        self.preview_text.tag_config("error", foreground="#CC0000", font=FONTS['mono_bold'])
+        self.preview_text.tag_config("error", foreground="#CC0000", font=FONTS['mono'])
         
         # Parsed fields section - aligned with hex section
         ttk.Label(preview_container, text="Parsed:",
-                font=FONTS['ui_bold'], width=12, anchor='e').grid(row=1, column=0, 
+                font=FONTS['default'], width=12, anchor='e').grid(row=1, column=0, 
                 padx=(0, 10), pady=3, sticky='e')
         self.parsed_text = tk.Text(preview_container, height=8, width=50, font=FONTS['mono'],
                                   relief=tk.SUNKEN, bd=1)
@@ -261,15 +266,15 @@ class HostTab:
         
         # Configure color tags for parsed_text
         self.parsed_text.tag_config("field_label", foreground="#666666", font=FONTS['mono'])
-        self.parsed_text.tag_config("field_value", foreground="#0066CC", font=FONTS['mono_bold'])
-        self.parsed_text.tag_config("func_code", foreground="#9900CC", font=FONTS['mono_bold'])
-        self.parsed_text.tag_config("address", foreground="#FF6600", font=FONTS['mono_bold'])
+        self.parsed_text.tag_config("field_value", foreground="#0066CC", font=FONTS['mono'])
+        self.parsed_text.tag_config("func_code", foreground="#9900CC", font=FONTS['mono'])
+        self.parsed_text.tag_config("address", foreground="#FF6600", font=FONTS['mono'])
         self.parsed_text.tag_config("separator", foreground="#999999", font=FONTS['mono'])
-        self.parsed_text.tag_config("error", foreground="#CC0000", font=FONTS['mono_bold'])
+        self.parsed_text.tag_config("error", foreground="#CC0000", font=FONTS['mono'])
         
         # Checksum status - aligned with parsed text start
         self.checksum_label = ttk.Label(preview_container, text="Checksum: Not calculated",
-                                      font=FONTS['ui'],
+                                      font=FONTS['default'],
                                       anchor='w')
         self.checksum_label.grid(row=2, column=1, pady=5, sticky='w')
         
@@ -572,8 +577,7 @@ class HostTab:
         transaction, stores it for timeout tracking, and auto-increments
         the message ID for the next request.
         """
-        serial_port = self.get_serial_port()
-        if not serial_port or not serial_port.is_open:
+        if not self.serial_connection.is_connected:
             messagebox.showerror("Error", "Serial port not connected")
             return
         
@@ -584,7 +588,10 @@ class HostTab:
         try:
             # Send packet
             packet_bytes = packet.to_bytes()
-            serial_port.write(packet_bytes)
+            success = self.serial_connection.send_data(packet_bytes)
+            if not success:
+                messagebox.showerror("Error", "Failed to send packet")
+                return
             
             # Log the request
             timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -643,6 +650,16 @@ class HostTab:
             self.process_response_buffer()
         except Exception as e:
             print(f"Error handling raw data in host tab: {e}")
+    
+    def on_data_received(self, msg_type: str, data, timestamp: str):
+        """Callback for serial connection data."""
+        if msg_type == 'rx':
+            # Add received data to our internal queue for processing
+            self.data_queue.put(data)
+        elif msg_type == 'error':
+            # Log error message
+            self.log_display.insert(tk.END, f"Serial Error: {data}\n", "error")
+            self.log_display.see(tk.END)
     
     def process_response_buffer(self):
         """Process the response buffer for complete packets"""

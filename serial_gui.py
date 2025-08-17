@@ -23,6 +23,7 @@ from modbus_tcp_master_tab import ModbusTCPMasterTab
 from ai_analyzer import AIAnalyzer
 from ai_config import AIConfig
 from ai_settings_dialog import AISettingsDialog
+from serial_connection import SerialConnection
 
 
 class ToolTip:
@@ -190,48 +191,6 @@ class SerialGUI:
         top_frame = tk.Frame(self.root, bg=self.COLORS['bg_main'])
         top_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
         
-        # Port selection
-        ttk.Label(top_frame, text="Port:", style='Connection.TLabel').grid(row=0, column=0, padx=5, pady=5)
-        self.port_var = tk.StringVar()
-        self.port_combo = ttk.Combobox(top_frame, textvariable=self.port_var, width=20)
-        self.port_combo.grid(row=0, column=1, padx=5)
-        
-        # Refresh ports button
-        self.refresh_btn = ttk.Button(top_frame, text="Refresh", command=self.refresh_ports)
-        self.refresh_btn.grid(row=0, column=2, padx=5)
-        
-        # Baud rate selection
-        ttk.Label(top_frame, text="Baud:", style='Connection.TLabel').grid(row=0, column=3, padx=5, pady=5)
-        self.baud_var = tk.StringVar(value="9600")
-        baud_rates = ["1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200"]
-        self.baud_combo = ttk.Combobox(top_frame, textvariable=self.baud_var, values=baud_rates, width=10)
-        self.baud_combo.grid(row=0, column=4, padx=5)
-        
-        # Data bits
-        ttk.Label(top_frame, text="Data:", style='Connection.TLabel').grid(row=0, column=5, padx=5, pady=5)
-        self.databits_var = tk.StringVar(value="8")
-        databits = ["5", "6", "7", "8"]
-        self.databits_combo = ttk.Combobox(top_frame, textvariable=self.databits_var, values=databits, width=5)
-        self.databits_combo.grid(row=0, column=6, padx=5)
-        
-        # Parity
-        ttk.Label(top_frame, text="Parity:", style='Connection.TLabel').grid(row=0, column=7, padx=5, pady=5)
-        self.parity_var = tk.StringVar(value="None")
-        parities = ["None", "Even", "Odd", "Mark", "Space"]
-        self.parity_combo = ttk.Combobox(top_frame, textvariable=self.parity_var, values=parities, width=8)
-        self.parity_combo.grid(row=0, column=8, padx=5)
-        
-        # Stop bits
-        ttk.Label(top_frame, text="Stop:", style='Connection.TLabel').grid(row=0, column=9, padx=5, pady=5)
-        self.stopbits_var = tk.StringVar(value="1")
-        stopbits = ["1", "1.5", "2"]
-        self.stopbits_combo = ttk.Combobox(top_frame, textvariable=self.stopbits_var, values=stopbits, width=5)
-        self.stopbits_combo.grid(row=0, column=10, padx=5)
-        
-        # Connect/Disconnect button
-        self.connect_btn = ttk.Button(top_frame, text="Connect", command=self.toggle_connection)
-        self.connect_btn.grid(row=0, column=11, padx=5)
-        
         # Options frame with purple background
         options_frame = tk.Frame(self.root, bg=self.COLORS['bg_main'])
         options_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
@@ -266,6 +225,9 @@ class SerialGUI:
                               fg='#333333',
                               font=('Arial', 14, 'bold'), pady=10)
         data_header.pack(fill=tk.X)
+        
+        # Create independent serial connection for Data Display tab
+        self.data_tab_serial = SerialConnection(data_tab, self.on_data_tab_data_received)
         
         # Display format controls
         format_frame = tk.Frame(data_tab, bg=self.COLORS['bg_main'])
@@ -376,32 +338,30 @@ class SerialGUI:
         # Initialize AI status
         self.update_ai_status()
         
-        # Status bar section for Data Display tab
+        # Display controls section for Data Display tab
         data_status_frame = tk.Frame(data_tab, bg=self.COLORS['bg_main'])
         data_status_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
         
-        # Connection status indicator (colored circle)
-        self.status_indicator = tk.Label(data_status_frame, text="●", font=("Arial", 14),
-                                        fg=self.COLORS['fg_disconnected'])
-        self.status_indicator.pack(side=tk.LEFT, padx=5)
+        # Font size label and controls (improved visibility and layout)
+        font_controls_frame = tk.Frame(data_status_frame, bg=self.COLORS['bg_main'], relief=tk.FLAT, bd=1)
+        font_controls_frame.pack(side=tk.RIGHT, padx=10, pady=2)
         
-        # Status text
-        self.status_bar = tk.Label(data_status_frame, text="Disconnected",
-                                  fg='#333333', font=("Arial", 10, 'bold'))
-        self.status_bar.pack(side=tk.LEFT, padx=5)
+        # Font size label with better contrast
+        font_label = tk.Label(font_controls_frame, text="Font Size:", fg='#333333',
+                             font=("Arial", 10, "bold"), bg=self.COLORS['bg_main'])
+        font_label.pack(side=tk.LEFT, padx=(5, 8))
         
-        # Port info label (shows port and settings when connected)
-        self.port_info_label = tk.Label(data_status_frame, text="",
-                                       fg='#1976D2', font=("Arial", 10))
-        self.port_info_label.pack(side=tk.LEFT, padx=20)
-        
-        # Font size label and controls
-        tk.Label(data_status_frame, text="Font Size:", fg='#333333',
-                font=("Arial", 10)).pack(side=tk.RIGHT, padx=5)
+        # Font size spinbox with proper width and current value display
         self.font_size_var = tk.IntVar(value=14)
-        font_spin = ttk.Spinbox(data_status_frame, from_=10, to=20, width=4,
-                               textvariable=self.font_size_var, command=self.update_font_size)
-        font_spin.pack(side=tk.RIGHT, padx=5)
+        font_spin = ttk.Spinbox(font_controls_frame, from_=10, to=20, width=5,
+                               textvariable=self.font_size_var, command=self.update_font_size,
+                               justify='center')
+        font_spin.pack(side=tk.LEFT, padx=(0, 8))
+        
+        # Current size indicator
+        self.current_font_label = tk.Label(font_controls_frame, text="(14pt)", fg='#666666',
+                                          font=("Arial", 9), bg=self.COLORS['bg_main'])
+        self.current_font_label.pack(side=tk.LEFT, padx=(0, 5))
         
         # Create tags for different message types (both displays)
         self.rx_display.tag_config("rx", foreground="blue")
@@ -446,7 +406,7 @@ class SerialGUI:
                               font=('Arial', 14, 'bold'), pady=10)
         host_header.pack(fill=tk.X)
         
-        self.host_tab = HostTab(host_tab, lambda: self.serial_port, self.data_queue)
+        self.host_tab = HostTab(host_tab)
         
         # Device tab (Protocol Slave) with orange theme
         device_tab = ttk.Frame(self.notebook, style='Device.TFrame')
@@ -458,7 +418,7 @@ class SerialGUI:
                                 font=('Arial', 14, 'bold'), pady=10)
         device_header.pack(fill=tk.X)
         
-        self.device_tab = DeviceTab(device_tab, lambda: self.serial_port, self.data_queue)
+        self.device_tab = DeviceTab(device_tab)
         
         # Modbus TCP Master tab with purple theme
         modbus_master_tab = ttk.Frame(self.notebook, style='Hex.TFrame')
@@ -517,6 +477,10 @@ class SerialGUI:
             if hasattr(self, 'modbus_master_tab') and hasattr(self.modbus_master_tab, 'log_display'):
                 self.modbus_master_tab.log_display.config(font=new_font)
                 self.modbus_master_tab.preview_text.config(font=new_font)
+            
+            # Update current font size indicator
+            if hasattr(self, 'current_font_label'):
+                self.current_font_label.config(text=f"({new_size}pt)")
                     
         except Exception as e:
             print(f"Font update error: {e}")
@@ -554,9 +518,9 @@ class SerialGUI:
                 pass  # Skip ports that can't be opened
         
         # Update combo box
-        self.port_combo['values'] = port_list
-        if port_list:
-            self.port_combo.current(0)
+        # self.port_combo['values'] = port_list
+        # if port_list:
+        #     self.port_combo.current(0)
         
         # Add detailed status message with port list
         if port_list:
@@ -607,54 +571,53 @@ class SerialGUI:
         """
         try:
             # Extract port name from combo selection
-            port_selection = self.port_var.get()
-            if not port_selection:
-                messagebox.showerror("Error", "Please select a serial port")
-                return
+            # port_selection = self.port_var.get()
+            # if not port_selection:
+            #     messagebox.showerror("Error", "Please select a serial port")
+            #     return
             
             # Extract just the port name (before the dash or parenthesis)
-            if platform.system() == "Windows":
-                port = port_selection.split(" - ")[0]
-            else:
-                port = port_selection.split(" (")[0]
+            # if platform.system() == "Windows":
+            #     port = port_selection.split(" - ")[0]
+            # else:
+            #     port = port_selection.split(" (")[0]
             
             # Get connection parameters
-            baud = int(self.baud_var.get())
-            databits = int(self.databits_var.get())
-            parity = self.get_parity_constant(self.parity_var.get())
-            stopbits = self.get_stopbits_constant(self.stopbits_var.get())
+            # baud = int(self.baud_var.get())
+            # databits = int(self.databits_var.get())
+            # parity = self.get_parity_constant(self.parity_var.get())
+            # stopbits = self.get_stopbits_constant(self.stopbits_var.get())
             
             # Create serial connection with non-blocking settings
-            self.serial_port = serial.Serial(
-                port=port,
-                baudrate=baud,
-                bytesize=databits,
-                parity=parity,
-                stopbits=stopbits,
-                timeout=0,  # Non-blocking read
-                write_timeout=0  # Non-blocking write
-            )
+            # self.serial_port = serial.Serial(
+            #     port=port,
+            #     baudrate=baud,
+            #     bytesize=databits,
+            #     parity=parity,
+            #     stopbits=stopbits,
+            #     timeout=0,  # Non-blocking read
+            #     write_timeout=0  # Non-blocking write
+            # )
             
             self.is_connected = True
             self.running = True
             
             # Update UI
-            self.connect_btn.config(text="Disconnect")
-            self.send_btn.config(state=tk.NORMAL)
-            self.port_combo.config(state=tk.DISABLED)
-            self.baud_combo.config(state=tk.DISABLED)
-            self.databits_combo.config(state=tk.DISABLED)
-            self.parity_combo.config(state=tk.DISABLED)
-            self.stopbits_combo.config(state=tk.DISABLED)
-            self.refresh_btn.config(state=tk.DISABLED)
+            # self.connect_btn.config(text="Disconnect")
+            # self.send_btn.config(state=tk.NORMAL)
+            # self.port_combo.config(state=tk.DISABLED)
+            # self.baud_combo.config(state=tk.DISABLED)
+            # self.databits_combo.config(state=tk.DISABLED)
+            # self.parity_combo.config(state=tk.DISABLED)
+            # self.stopbits_combo.config(state=tk.DISABLED)
+            # self.refresh_btn.config(state=tk.DISABLED)
             
-            # Update status display
-            self.status_bar.config(text=f"Connected to {port} at {baud} baud")
-            self.add_system_message(f"Connected to {port}")
+            # Status update (old main connection - now unused)
+            # self.add_system_message(f"Connected to {port}")
             
             # Start read thread
-            self.read_thread = threading.Thread(target=self.read_serial_thread, daemon=True)
-            self.read_thread.start()
+            # self.read_thread = threading.Thread(target=self.read_serial_thread, daemon=True)
+            # self.read_thread.start()
             
         except serial.SerialException as e:
             messagebox.showerror("Connection Error", f"Failed to connect: {str(e)}")
@@ -677,19 +640,16 @@ class SerialGUI:
         self.serial_port = None
         
         # Update UI
-        self.connect_btn.config(text="Connect")
-        self.send_btn.config(state=tk.DISABLED)
-        self.port_combo.config(state=tk.NORMAL)
-        self.baud_combo.config(state=tk.NORMAL)
-        self.databits_combo.config(state=tk.NORMAL)
-        self.parity_combo.config(state=tk.NORMAL)
-        self.stopbits_combo.config(state=tk.NORMAL)
-        self.refresh_btn.config(state=tk.NORMAL)
+        # self.connect_btn.config(text="Connect")
+        # self.send_btn.config(state=tk.DISABLED)
+        # self.port_combo.config(state=tk.NORMAL)
+        # self.baud_combo.config(state=tk.NORMAL)
+        # self.databits_combo.config(state=tk.NORMAL)
+        # self.parity_combo.config(state=tk.NORMAL)
+        # self.stopbits_combo.config(state=tk.NORMAL)
+        # self.refresh_btn.config(state=tk.NORMAL)
         
-        # Update status with visual indicators
-        self.status_indicator.config(fg=self.COLORS['fg_disconnected'])
-        self.status_bar.config(text="Disconnected")
-        self.port_info_label.config(text="")
+        # Status update (old main connection - now unused)
         self.add_system_message("Disconnected")
     
     def read_serial_thread(self):
@@ -939,9 +899,56 @@ class SerialGUI:
         
         self.hex_display.config(state=tk.DISABLED)
     
+    def on_data_tab_data_received(self, msg_type: str, data, timestamp: str):
+        """Callback for Data Display tab serial connection."""
+        if msg_type == 'rx':
+            # Display received data
+            self.display_received_data(data)
+            
+            # Perform AI analysis if enabled
+            if hasattr(self, 'ai_analyzer') and self.ai_analyzer:
+                # Add to analysis history
+                if not hasattr(self, 'ai_analysis_history'):
+                    self.ai_analysis_history = []
+                self.ai_analysis_history.append(data)
+                
+                # Keep only last 100 messages
+                if len(self.ai_analysis_history) > 100:
+                    self.ai_analysis_history.pop(0)
+                
+                # Perform analysis
+                self.perform_ai_analysis(data, self.ai_analysis_history[-10:])
+                
+        elif msg_type == 'tx':
+            # Display sent data
+            self.rx_display.config(state=tk.NORMAL)
+            if self.logging_enabled.get() and timestamp:
+                self.rx_display.insert(tk.END, f"[{timestamp}] TX: ", "system")
+            else:
+                self.rx_display.insert(tk.END, "TX: ", "system")
+            
+            try:
+                text = data.decode('utf-8', errors='replace')
+                self.rx_display.insert(tk.END, text + "\n", "tx")
+            except:
+                # Show as hex if decode fails
+                hex_text = ' '.join(f'{b:02X}' for b in data)
+                self.rx_display.insert(tk.END, f"[HEX] {hex_text}\n", "tx")
+            
+            if self.auto_scroll_enabled.get():
+                self.rx_display.see(tk.END)
+            self.rx_display.config(state=tk.DISABLED)
+            
+            # Update hex display
+            self.update_hex_display(data, "TX")
+            
+        elif msg_type == 'error':
+            # Display error message
+            self.add_system_message(data, "error")
+    
     def send_command(self):
-        """Send command to serial port"""
-        if not self.is_connected or not self.serial_port:
+        """Send command through Data Display tab's serial port"""
+        if not self.data_tab_serial.is_connected:
             return
         
         command = self.command_entry.get()
@@ -962,48 +969,24 @@ class SerialGUI:
         elif line_ending == "\\r\\n":
             command += "\r\n"
         
-        try:
-            # Send command
-            self.serial_port.write(command.encode('utf-8'))
-            
-            # Display sent command
-            self.rx_display.config(state=tk.NORMAL)
-            
-            if self.logging_enabled.get():
-                timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                self.rx_display.insert(tk.END, f"[{timestamp}] TX: ", "system")
-            else:
-                self.rx_display.insert(tk.END, "TX: ", "system")
-            
-            # Display without line ending for clarity
-            display_cmd = command.rstrip('\r\n')
-            self.rx_display.insert(tk.END, display_cmd + "\n", "tx")
-            
-            if self.auto_scroll_enabled.get():
-                self.rx_display.see(tk.END)
-            
-            self.rx_display.config(state=tk.DISABLED)
-            
-            # Update hex display (always update for format switching)
-            self.update_hex_display(command.encode('utf-8'), "TX")
-            
-            # Log to file if enabled
+        # Send command through Data Display tab's serial connection
+        success = self.data_tab_serial.send_data(command.encode('utf-8'))
+        if success:
+            # Log to file if enabled (TX display is handled by callback)
             if self.logging_enabled.get() and self.log_file:
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                display_cmd = command.rstrip('\r\n')
                 self.log_file.write(f"{timestamp},TX,{display_cmd}\n")
                 self.log_file.flush()
             
             # Clear entry
             self.command_entry.delete(0, tk.END)
-            
-        except serial.SerialTimeoutException:
-            self.add_system_message("Write timeout", "error")
-        except Exception as e:
-            self.add_system_message(f"Send error: {str(e)}", "error")
+        else:
+            self.add_system_message("Failed to send command", "error")
     
     def send_macro(self, macro_command: str):
         """Send a predefined macro command"""
-        if self.is_connected:
+        if self.data_tab_serial.is_connected:
             self.command_entry.delete(0, tk.END)
             self.command_entry.insert(0, macro_command)
             self.send_command()

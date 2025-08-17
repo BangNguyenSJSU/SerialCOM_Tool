@@ -15,7 +15,7 @@ from modbus_tcp_protocol import (
     ModbusTCPFrame, ModbusTCPBuilder, ModbusTCPParser, ModbusRegisterMap,
     ModbusFunctionCode, ModbusException
 )
-from ui_styles import FONTS, SPACING, COLORS, configure_text_widget, create_status_pill, update_status_pill, init_style
+from ui_styles import FONTS, SPACING, COLORS
 
 
 class ModbusTCPSlaveTab:
@@ -91,7 +91,7 @@ class ModbusTCPSlaveTab:
     def create_widgets(self):
         """Create Modbus TCP Slave tab UI elements"""
         # Initialize professional styling
-        init_style()
+        style = ttk.Style()
         # Main container with consistent styling
         self.main_frame = ttk.Frame(self.frame)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -131,35 +131,35 @@ class ModbusTCPSlaveTab:
         
         # Row 1: IP: [127.0.0.1] Port: [502] Unit: [1]
         row1 = ttk.Frame(server_content)
-        row1.pack(fill=tk.X, pady=(0, SPACING['pady_small']))
+        row1.pack(fill=tk.X, pady=(0, 3))
         
         # IP field - with dropdown of available IPs
-        ttk.Label(row1, text="IP:", font=FONTS['ui']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
+        ttk.Label(row1, text="IP:", font=FONTS['default']).pack(side=tk.LEFT, padx=(0, 4))
         
         # Get available IP addresses
         available_ips = self.get_available_ips()
         self.ip_var = tk.StringVar(value="0.0.0.0")  # Default to all interfaces
         self.ip_combo = ttk.Combobox(row1, textvariable=self.ip_var, 
-                                     values=available_ips, width=12, font=FONTS['ui'])
+                                     values=available_ips, width=12, font=FONTS['default'])
         self.ip_combo.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
         # Port field - more compact
-        ttk.Label(row1, text="Port:", font=FONTS['ui']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
+        ttk.Label(row1, text="Port:", font=FONTS['default']).pack(side=tk.LEFT, padx=(0, 4))
         self.port_var = tk.IntVar(value=502)
         self.port_spin = ttk.Spinbox(row1, from_=1, to=65535, textvariable=self.port_var, 
-                                    width=5, font=FONTS['ui'])
+                                    width=5, font=FONTS['default'])
         self.port_spin.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
         # Unit ID field - very compact
-        ttk.Label(row1, text="Unit:", font=FONTS['ui']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
+        ttk.Label(row1, text="Unit:", font=FONTS['default']).pack(side=tk.LEFT, padx=(0, 4))
         self.unit_id_var = tk.IntVar(value=self.unit_id)
         self.unit_id_spin = ttk.Spinbox(row1, from_=1, to=247, textvariable=self.unit_id_var,
-                                       width=6, font=FONTS['ui'], command=self.update_unit_id)
+                                       width=6, font=FONTS['default'], command=self.update_unit_id)
         self.unit_id_spin.pack(side=tk.LEFT, padx=0)
         
         # Row 1.5: [Start Server] [Stop Server] - separate row to ensure visibility
         button_row = ttk.Frame(server_content)
-        button_row.pack(fill=tk.X, pady=(SPACING['pady_small'], SPACING['pady_small']))
+        button_row.pack(fill=tk.X, pady=(3, 3))
         
         self.start_btn = ttk.Button(button_row, text="Start Server", command=self.start_server, 
                                    width=12, style="Accent.TButton")
@@ -174,15 +174,15 @@ class ModbusTCPSlaveTab:
         row2.pack(fill=tk.X, pady=(4, 0))
         
         # Status section
-        ttk.Label(row2, text="Status:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        ttk.Label(row2, text="Status:", font=FONTS['default']).pack(side=tk.LEFT)
         self.status_label = ttk.Label(row2, text="Server Stopped", 
-                                    foreground=COLORS['fg_disconnected'], font=FONTS['ui_bold'])
+                                    foreground=COLORS['fg_disconnected'], font=FONTS['default'])
         self.status_label.pack(side=tk.LEFT, padx=(4, 20))
         
         # Connection section
-        ttk.Label(row2, text="Connection:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        ttk.Label(row2, text="Connection:", font=FONTS['default']).pack(side=tk.LEFT)
         self.connection_label = ttk.Label(row2, text="No client connected", foreground=COLORS['fg_disconnected'],
-                                        font=FONTS['ui_small'])
+                                        font=FONTS['default'])
         self.connection_label.pack(side=tk.LEFT, padx=(4, 0))
     
     def create_statistics_section(self):
@@ -199,20 +199,20 @@ class ModbusTCPSlaveTab:
         stats_row.pack(fill=tk.X, pady=2)
         
         # Conn: 0  Req: 0  Resp: 0  Err: 0  [Reset]
-        ttk.Label(stats_row, text="Conn:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
-        self.connections_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel")
+        ttk.Label(stats_row, text="Conn:", font=FONTS['default']).pack(side=tk.LEFT, padx=(0, 4))
+        self.connections_label = ttk.Label(stats_row, text="0", font=FONTS['default'], style="StatValue.TLabel")
         self.connections_label.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
-        ttk.Label(stats_row, text="Req:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
-        self.requests_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel")
+        ttk.Label(stats_row, text="Req:", font=FONTS['default']).pack(side=tk.LEFT, padx=(0, 4))
+        self.requests_label = ttk.Label(stats_row, text="0", font=FONTS['default'], style="StatValue.TLabel")
         self.requests_label.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
-        ttk.Label(stats_row, text="Resp:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
-        self.responses_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel")
+        ttk.Label(stats_row, text="Resp:", font=FONTS['default']).pack(side=tk.LEFT, padx=(0, 4))
+        self.responses_label = ttk.Label(stats_row, text="0", font=FONTS['default'], style="StatValue.TLabel")
         self.responses_label.pack(side=tk.LEFT, padx=(0, SPACING['padx']))
         
-        ttk.Label(stats_row, text="Err:", font=FONTS['ui_small']).pack(side=tk.LEFT, padx=(0, SPACING['padx_small']))
-        self.errors_label = ttk.Label(stats_row, text="0", font=FONTS['ui_small'], style="StatValue.TLabel", foreground="#DC2626") 
+        ttk.Label(stats_row, text="Err:", font=FONTS['default']).pack(side=tk.LEFT, padx=(0, 4))
+        self.errors_label = ttk.Label(stats_row, text="0", font=FONTS['default'], style="StatValue.TLabel", foreground="#DC2626") 
         self.errors_label.pack(side=tk.LEFT, padx=(2, 0))
         
         ttk.Button(stats_row, text="Reset", command=self.reset_statistics,
@@ -229,7 +229,7 @@ class ModbusTCPSlaveTab:
         
         # Checkbox with matching background
         self.error_checkbox = tk.Checkbutton(error_content, text="Enable Error Simulation",
-                                           command=self.toggle_error_options, font=FONTS['ui_small'])
+                                           command=self.toggle_error_options, font=FONTS['default'])
         self.error_checkbox.pack(anchor=tk.W, pady=(0, 4))
         
         # Radio buttons in 2-column layout with matching background
@@ -253,7 +253,7 @@ class ModbusTCPSlaveTab:
                 row = i // 2
                 col = i % 2
                 radio = tk.Radiobutton(radio_frame, text=text, variable=self.error_type,
-                                     font=FONTS['ui_small'])
+                                     font=FONTS['default'])
                 radio.grid(row=row, column=col, sticky=tk.W, pady=1, padx=2)
                 self.error_radios.append(radio)
         
@@ -273,16 +273,16 @@ class ModbusTCPSlaveTab:
         row1.pack(fill=tk.X, pady=(0, 4))
         
         # Left side: Input fields with right-aligned labels
-        ttk.Label(row1, text="Addr:", font=FONTS['ui_small'], 
+        ttk.Label(row1, text="Addr:", font=FONTS['default'], 
                 width=5, anchor='e').pack(side=tk.LEFT)
         self.reg_addr_var = tk.StringVar(value="0000")
-        self.reg_addr_entry = ttk.Entry(row1, textvariable=self.reg_addr_var, width=5, font=FONTS['mono_small'])
+        self.reg_addr_entry = ttk.Entry(row1, textvariable=self.reg_addr_var, width=5, font=FONTS['mono'])
         self.reg_addr_entry.pack(side=tk.LEFT, padx=(2, 8))
         
-        ttk.Label(row1, text="Value:", font=FONTS['ui_small'], 
+        ttk.Label(row1, text="Value:", font=FONTS['default'], 
                 width=5, anchor='e').pack(side=tk.LEFT)
         self.reg_value_var = tk.StringVar(value="0000")
-        self.reg_value_entry = ttk.Entry(row1, textvariable=self.reg_value_var, width=5, font=FONTS['mono_small'])
+        self.reg_value_entry = ttk.Entry(row1, textvariable=self.reg_value_var, width=5, font=FONTS['mono'])
         self.reg_value_entry.pack(side=tk.LEFT, padx=(2, 8))
         
         # Right side: Action buttons grouped together
@@ -399,7 +399,7 @@ class ModbusTCPSlaveTab:
         """Create register map display"""
         reg_display_frame = tk.LabelFrame(parent, text="Register Map",
                                          fg='#212121',
-                                         font=FONTS['ui_title'],
+                                         font=FONTS['default'],
                                          relief=tk.RAISED, bd=2)
         reg_display_frame.pack(fill=tk.BOTH, expand=True, padx=5)
         
@@ -416,8 +416,8 @@ class ModbusTCPSlaveTab:
         self.register_display.pack(fill=tk.BOTH, expand=True)
         
         # Configure tags for better readability
-        self.register_display.tag_config("header", font=FONTS['mono_bold'], foreground="#333333")
-        self.register_display.tag_config("address", font=FONTS['mono_bold'], foreground="#0066CC")
+        self.register_display.tag_config("header", font=FONTS['mono'], foreground="#333333")
+        self.register_display.tag_config("address", font=FONTS['mono'], foreground="#0066CC")
         self.register_display.tag_config("value", font=FONTS['mono'], foreground="#006600")
     
     def create_communication_log(self, parent):
@@ -450,7 +450,14 @@ class ModbusTCPSlaveTab:
         self.log_display.pack(fill=tk.BOTH, expand=True)
         
         # Configure log display with consistent styling
-        configure_text_widget(self.log_display, "log")
+        self.log_display.configure(font=FONTS["mono"], borderwidth=0, highlightthickness=0)
+        self.log_display.tag_config("info", foreground="#0066CC", font=FONTS["mono"])
+        self.log_display.tag_config("request", foreground="#00AA00", font=FONTS["mono"])
+        self.log_display.tag_config("response", foreground="#AA00AA", font=FONTS["mono"])
+        self.log_display.tag_config("error", foreground="#CC0000", font=FONTS["mono"])
+        self.log_display.tag_config("timeout", foreground="#FF8800", font=FONTS["mono"])
+        self.log_display.tag_config("system", foreground="#666666", font=FONTS["mono"])
+        self.log_display.tag_config("debug", foreground="#FF6600", font=FONTS["mono"])
     
     # === EVENT HANDLERS ===
     

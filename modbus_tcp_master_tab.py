@@ -14,9 +14,7 @@ from modbus_tcp_protocol import (
     ModbusTCPFrame, ModbusTCPBuilder, ModbusTCPParser,
     ModbusFunctionCode, ModbusException
 )
-from ui_styles import (
-    FONTS, SPACING, COLORS, configure_text_widget
-)
+from ui_styles import FONTS, SPACING, COLORS
 
 
 class ModbusTCPMasterTab:
@@ -30,9 +28,9 @@ class ModbusTCPMasterTab:
     
     def _init_style(self):
         """Initialize ttk styles for professional appearance"""
-        # Use the shared init_style from ui_styles module instead of duplicating
-        from ui_styles import init_style
-        init_style()
+        # Basic ttk style initialization
+        style = ttk.Style()
+        return style
     
     def __init__(self, parent_frame: ttk.Frame):
         """Initialize Modbus TCP Master Tab."""
@@ -126,7 +124,7 @@ class ModbusTCPMasterTab:
         # Status pill (single element for cleaner state display)
         self.status_pill = tk.Label(conn_control_frame, text="Disconnected",
                                    bd=0, padx=10, pady=3, fg="#991B1B",
-                                   font=FONTS["ui_bold"])
+                                   font=FONTS["default"])
         self.status_pill.pack(side=tk.LEFT, padx=(6, 0))
         
         # Add separator between header and content
@@ -156,34 +154,33 @@ class ModbusTCPMasterTab:
         op_frame = ttk.Frame(request_frame)
         op_frame.pack(fill=tk.X, pady=(0, 4))
         
-        ttk.Label(op_frame, text="Operation", font=FONTS["ui_bold"]).pack(anchor=tk.W)
+        ttk.Label(op_frame, text="Operation", font=FONTS["default"]).pack(anchor=tk.W)
         rb_container = ttk.Frame(op_frame)
         rb_container.pack(anchor=tk.W, pady=(2, 0))
         
         self.operation_var = tk.StringVar(value="read")
-        ttk.Radiobutton(rb_container, text="Read (0x03)", variable=self.operation_var,
-                       value="read", command=self.update_preview).pack(side=tk.LEFT, padx=(0, 12))
-        ttk.Radiobutton(rb_container, text="Write (0x10)", variable=self.operation_var,
-                       value="write", command=self.update_preview).pack(side=tk.LEFT)
+        ttk.Radiobutton(rb_container, text="RD (0x03)", variable=self.operation_var,
+                       value="read", command=self.update_preview).pack(anchor=tk.W, pady=(0, 2))
+        ttk.Radiobutton(rb_container, text="WR (0x10)", variable=self.operation_var,
+                       value="write", command=self.update_preview).pack(anchor=tk.W)
         
         # Compact parameters layout
         params_frame = ttk.Frame(request_frame)
         params_frame.pack(fill=tk.X, pady=(0, 6))
         
         # Start Address
-        ttk.Label(params_frame, text="Start Address:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        ttk.Label(params_frame, text="Start Addr (hex):").grid(row=0, column=0, sticky=tk.W, pady=2)
         self.start_addr_var = tk.StringVar(value="0000")
         self.start_addr_entry = ttk.Entry(params_frame, textvariable=self.start_addr_var, width=8)
         self.start_addr_entry.grid(row=0, column=1, padx=(5, 2), pady=2, sticky=tk.W)
         self.start_addr_var.trace('w', lambda *args: self.update_preview())
         
-        ttk.Label(params_frame, text="(hex)", font=FONTS['ui_small'], foreground="#6B7280").grid(row=0, column=2, sticky=tk.W, pady=2)
         
         # Count (for read)
         self.count_label = ttk.Label(params_frame, text="Count:")
         self.count_label.grid(row=1, column=0, sticky=tk.W, pady=2)
         self.count_var = tk.IntVar(value=1)
-        self.count_spin = ttk.Spinbox(params_frame, from_=1, to=125, textvariable=self.count_var, width=8)
+        self.count_spin = ttk.Spinbox(params_frame, from_=0, to=65535, textvariable=self.count_var, width=6)
         self.count_spin.grid(row=1, column=1, padx=(5, 0), pady=2, sticky=tk.W)
         self.count_var.trace('w', lambda *args: self.update_preview())
         
@@ -242,7 +239,7 @@ class ModbusTCPMasterTab:
         
         self.preview_text = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, height=25)
         self.preview_text.pack(fill=tk.BOTH, expand=True)
-        configure_text_widget(self.preview_text, "preview")
+        self.preview_text.configure(font=FONTS["mono"], borderwidth=0, highlightthickness=0)
         
         # Configure tags with high contrast and clean appearance
         self.preview_text.tag_config("header", font=FONTS["mono"], foreground="#1F4B99")
@@ -273,7 +270,7 @@ class ModbusTCPMasterTab:
         # Compact log display
         self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=25)
         self.log_display.pack(fill=tk.BOTH, expand=True)
-        configure_text_widget(self.log_display, "log")
+        self.log_display.configure(font=FONTS["mono"], borderwidth=0, highlightthickness=0)
         
         # Configure log tags with high contrast colors
         self.log_display.tag_config("info", foreground="#0066CC", font=FONTS["mono"])

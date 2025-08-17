@@ -15,7 +15,8 @@ from protocol import (
     Packet, PacketBuilder, PacketParser,
     FunctionCode, ErrorCode, RegisterMap
 )
-from ui_styles import FONTS, SPACING, COLORS, configure_text_widget
+from ui_styles import FONTS, SPACING, COLORS
+from serial_connection import SerialConnection
 
 
 class DeviceTab:
@@ -38,18 +39,20 @@ class DeviceTab:
     SEARCH_ENTRY_W = 180 # Search entry width
     LABEL_COL_W = 80     # Label column width
     
-    def __init__(self, parent_frame: ttk.Frame, serial_port_getter, data_queue: queue.Queue):
+    def __init__(self, parent_frame: ttk.Frame):
         """
         Initialize Device Tab.
         
         Args:
             parent_frame: Parent Tkinter frame
-            serial_port_getter: Callable that returns current serial port
-            data_queue: Shared queue for serial data
         """
         self.frame = parent_frame
-        self.get_serial_port = serial_port_getter
-        self.data_queue = data_queue
+        
+        # Create independent serial connection for Device tab
+        self.serial_connection = SerialConnection(parent_frame, self.on_data_received)
+        
+        # Create internal data queue for protocol requests
+        self.data_queue = queue.Queue()
         
         # Device state management
         self.device_address = 1  # This device's address (1-247)
@@ -230,11 +233,11 @@ class DeviceTab:
         incoming_stats = ttk.Frame(self.incoming_frame)
         incoming_stats.pack(fill=tk.X, pady=(0, self.PAD))
         
-        ttk.Label(incoming_stats, text="Total:", font=FONTS['ui_small']).pack(side=tk.LEFT)
-        self.incoming_total_label = ttk.Label(incoming_stats, text="0", font=FONTS['mono_bold'])
+        ttk.Label(incoming_stats, text="Total:", font=FONTS['default']).pack(side=tk.LEFT)
+        self.incoming_total_label = ttk.Label(incoming_stats, text="0", font=FONTS['mono'])
         self.incoming_total_label.pack(side=tk.LEFT, padx=(4, 12))
         
-        ttk.Label(incoming_stats, text="Errors:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        ttk.Label(incoming_stats, text="Errors:", font=FONTS['default']).pack(side=tk.LEFT)
         self.incoming_error_label = ttk.Label(incoming_stats, text="0", font=FONTS['mono'], foreground="red")
         self.incoming_error_label.pack(side=tk.LEFT, padx=(4, 12))
         
@@ -263,7 +266,7 @@ class DeviceTab:
         # Log text area with reduced width
         self.incoming_request_log = scrolledtext.ScrolledText(
             self.incoming_frame, wrap=tk.NONE, height=12, width=35,
-            font=FONTS['mono_small'], padx=8, pady=8)
+            font=FONTS['mono'], padx=8, pady=8)
         self.incoming_request_log.pack(fill=tk.BOTH, expand=True)
         
         # Outgoing Responses Panel
@@ -275,11 +278,11 @@ class DeviceTab:
         outgoing_stats = ttk.Frame(self.outgoing_frame)
         outgoing_stats.pack(fill=tk.X, pady=(0, self.PAD))
         
-        ttk.Label(outgoing_stats, text="Total:", font=FONTS['ui_small']).pack(side=tk.LEFT)
-        self.outgoing_total_label = ttk.Label(outgoing_stats, text="0", font=FONTS['mono_bold'])
+        ttk.Label(outgoing_stats, text="Total:", font=FONTS['default']).pack(side=tk.LEFT)
+        self.outgoing_total_label = ttk.Label(outgoing_stats, text="0", font=FONTS['mono'])
         self.outgoing_total_label.pack(side=tk.LEFT, padx=(4, 12))
         
-        ttk.Label(outgoing_stats, text="Errors:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        ttk.Label(outgoing_stats, text="Errors:", font=FONTS['default']).pack(side=tk.LEFT)
         self.outgoing_error_label = ttk.Label(outgoing_stats, text="0", font=FONTS['mono'], foreground="red")
         self.outgoing_error_label.pack(side=tk.LEFT, padx=(4, 12))
         
@@ -308,12 +311,12 @@ class DeviceTab:
         # Log text area with reduced width
         self.outgoing_response_log = scrolledtext.ScrolledText(
             self.outgoing_frame, wrap=tk.NONE, height=12, width=35,
-            font=FONTS['mono_small'], padx=8, pady=8)
+            font=FONTS['mono'], padx=8, pady=8)
         self.outgoing_response_log.pack(fill=tk.BOTH, expand=True)
         
         # Configure text tags
         for log in [self.incoming_request_log, self.outgoing_response_log]:
-            log.tag_config("header", foreground="blue", font=FONTS['mono_bold'])
+            log.tag_config("header", foreground="blue", font=FONTS['mono'])
             log.tag_config("data", foreground="black")
             log.tag_config("error", foreground="red")
     
@@ -406,7 +409,7 @@ class DeviceTab:
                 tooltip = tk.Toplevel()
                 tooltip.wm_overrideredirect(True)
                 tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
-                label = tk.Label(tooltip, text=text, font=FONTS['ui_small'])
+                label = tk.Label(tooltip, text=text, font=FONTS['default'])
                 label.pack()
                 widget.tooltip = tooltip
         
@@ -953,6 +956,16 @@ class DeviceTab:
                 self.device_address, packet.message_id, func, ErrorCode.INVALID_FUNCTION
             )
     
+    def on_data_received(self, msg_type: str, data, timestamp: str):
+        """Callback for serial connection data."""
+        if msg_type == 'rx':
+            # Add received data to our internal queue for processing
+            self.data_queue.put(data)
+        elif msg_type == 'error':
+            # Log error message
+            self.incoming_request_log.insert(tk.END, f"Serial Error: {data}\n", "error")
+            self.incoming_request_log.see(tk.END)
+    
     def send_response(self, response: Packet):
         """Send response packet back to host.
         
@@ -962,13 +975,14 @@ class DeviceTab:
         Args:
             response: Response packet to transmit
         """
-        serial_port = self.get_serial_port()
-        if not serial_port or not serial_port.is_open:
+        if not self.serial_connection.is_connected:
             return
         
         try:
             response_bytes = response.to_bytes()
-            serial_port.write(response_bytes)
+            success = self.serial_connection.send_data(response_bytes)
+            if not success:
+                return
             
             self.response_count += 1
             self.update_statistics()
