@@ -164,6 +164,47 @@ show_ai_settings.py          # Settings verification
 - **API Efficiency**: Rate limiting prevents quota exhaustion
 - **Memory Management**: Bounded history (100 analyses) prevents memory leaks
 
+## Build Summary
+
+### Latest Build: v4.2.1 (2025-01-17)
+**Status**: Stable Release  
+**Platform**: Cross-platform (Windows, macOS, Linux)  
+**Python Version**: 3.7+  
+**Dependencies**: pyserial, tkinter (built-in), pyinstaller (dev)
+
+#### Recent Changes (Post v4.2.0)
+- **Thread Management Fix**: Improved serial port disconnection handling with proper thread termination
+- **UI Updates**: Enhanced visual consistency and user interface improvements
+- **Build System**: Added PyInstaller support for standalone executable creation
+- **Documentation**: Added .gitignore for better repository management
+
+#### Build Instructions
+```bash
+# Standard Python execution
+python serial_gui.py
+
+# Create standalone executable (Windows)
+pyinstaller --onefile --windowed --name "SerialCOM_Tool" --add-data "image/*;image" --hidden-import serial --hidden-import serial.tools --hidden-import serial.tools.list_ports --hidden-import serial.tools.list_ports_windows serial_gui.py
+
+# Virtual environment setup (recommended)
+python -m venv venv
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # macOS/Linux
+pip install -r requirements.txt
+```
+
+#### Known Issues
+- None reported in current build
+
+#### Testing Status
+- ✅ Serial communication: Stable
+- ✅ Custom protocol: Verified  
+- ✅ Modbus TCP: Functional
+- ✅ Thread management: Fixed
+- ✅ Cross-platform: Tested on Windows/macOS/Linux
+
+---
+
 ## [4.2.0] - 2025-01-13 - Enhanced Debug Messages & Visual Improvements
 
 ### 🎨 Major Visual & Debug Enhancements

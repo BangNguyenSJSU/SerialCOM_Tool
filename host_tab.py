@@ -147,10 +147,7 @@ class HostTab:
         # === LEFT COLUMN CONTENT ===
         
         # Parameters Frame with green background - using grid for alignment
-        params_frame = tk.LabelFrame(left_column, text="Parameters", 
-                                    fg='#1b5e20',
-                                    font=('Arial', 10, 'bold'),
-                                    relief=tk.RAISED, bd=2)
+        params_frame = ttk.LabelFrame(left_column, text="Parameters", padding="8")
         params_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
         
         # Create grid container for parameter fields
@@ -161,7 +158,7 @@ class HostTab:
         params_content.columnconfigure(1, weight=1)
         
         # Register Address - row 0
-        tk.Label(params_content, text="Register Address (hex):",
+        ttk.Label(params_content, text="Register Address (hex):",
                 width=25, anchor='e').grid(row=0, column=0, padx=(0, 10), pady=3, sticky='e')
         self.reg_addr_var = tk.StringVar(value="0000")
         self.reg_addr_entry = ttk.Entry(params_content, textvariable=self.reg_addr_var, width=15)
@@ -169,7 +166,7 @@ class HostTab:
         self.reg_addr_var.trace('w', lambda *args: self.update_preview())
         
         # Register Value (for write operations) - row 1
-        self.value_label = tk.Label(params_content, text="Register Value (hex):",
+        self.value_label = ttk.Label(params_content, text="Register Value (hex):",
                 width=25, anchor='e')
         self.value_label.grid(row=1, column=0, padx=(0, 10), pady=3, sticky='e')
         self.reg_value_var = tk.StringVar(value="0000")
@@ -178,7 +175,7 @@ class HostTab:
         self.reg_value_var.trace('w', lambda *args: self.update_preview())
         
         # Count (for multiple operations) - row 2
-        self.count_label = tk.Label(params_content, text="Count (1-255):",
+        self.count_label = ttk.Label(params_content, text="Count (1-255):",
                 width=25, anchor='e')
         self.count_label.grid(row=2, column=0, padx=(0, 10), pady=3, sticky='e')
         self.count_var = tk.IntVar(value=1)
@@ -187,7 +184,7 @@ class HostTab:
         self.count_var.trace('w', lambda *args: self.update_preview())
         
         # Multiple values (for write multiple) - row 3
-        self.values_label = tk.Label(params_content, text="Values (comma-separated):",
+        self.values_label = ttk.Label(params_content, text="Values (comma-separated):",
                 width=30, anchor='e')
         self.values_label.grid(row=3, column=0, padx=(0, 10), pady=3, sticky='e')
         self.values_var = tk.StringVar(value="0000,0001,0002")
@@ -196,11 +193,11 @@ class HostTab:
         self.values_var.trace('w', lambda *args: self.update_preview())
         
         # Control Buttons with timeout indicator - using grid for better alignment
-        control_frame = tk.Frame(left_column)
+        control_frame = ttk.Frame(left_column)
         control_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
         
         # Create inner container with consistent padding
-        control_content = tk.Frame(control_frame)
+        control_content = ttk.Frame(control_frame)
         control_content.pack(fill=tk.X, padx=10, pady=5)
         
         # Standardized button width and height
@@ -215,7 +212,7 @@ class HostTab:
         clear_btn.grid(row=0, column=1, padx=(0, 20), sticky='w')
         
         # Timeout setting - aligned with buttons
-        tk.Label(control_content, text="Timeout (ms):",
+        ttk.Label(control_content, text="Timeout (ms):",
                 anchor='e', width=12).grid(row=0, column=2, padx=(0, 10), sticky='e')
         self.timeout_var = tk.IntVar(value=self.response_timeout)
         timeout_spin = ttk.Spinbox(control_content, from_=100, to=5000, textvariable=self.timeout_var, 
@@ -224,76 +221,71 @@ class HostTab:
         self.timeout_var.trace('w', lambda *args: setattr(self, 'response_timeout', self.timeout_var.get()))
         
         # Timeout indicator (shows countdown when waiting for response)
-        self.timeout_indicator = tk.Label(control_content, text="",
-                                         fg='orange', font=('Arial', 10, 'bold'), width=15)
+        self.timeout_indicator = ttk.Label(control_content, text="",
+                                         foreground='orange', font=FONTS['ui_bold'], width=15)
         self.timeout_indicator.grid(row=0, column=4, padx=10, sticky='w')
         
         # Packet Preview with amber background and parsed fields
-        preview_frame = tk.LabelFrame(left_column, text="Packet Preview & Inspection", 
-                                     fg='#e65100',
-                                     font=('Arial', 10, 'bold'),
-                                     relief=tk.RAISED, bd=2)
+        preview_frame = ttk.LabelFrame(left_column, text="Packet Preview & Inspection", padding="8")
         preview_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
         
         # Split preview into hex and parsed sections with proper alignment
-        preview_container = tk.Frame(preview_frame)
+        preview_container = ttk.Frame(preview_frame)
         preview_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
         
         # Configure grid weights for proper stretching
         preview_container.columnconfigure(1, weight=1)
         
         # Hex preview section - aligned labels
-        tk.Label(preview_container, text="Hex Bytes:",
-                font=('Arial', 10, 'bold'), width=12, anchor='e').grid(row=0, column=0, 
+        ttk.Label(preview_container, text="Hex Bytes:",
+                font=FONTS['ui_bold'], width=12, anchor='e').grid(row=0, column=0, 
                 padx=(0, 10), pady=3, sticky='e')
-        self.preview_text = tk.Text(preview_container, height=6, width=50, font=("Courier", 11),
+        self.preview_text = tk.Text(preview_container, height=6, width=50, font=FONTS['mono'],
                                    relief=tk.SUNKEN, bd=1)
         self.preview_text.grid(row=0, column=1, pady=3, sticky='ew')
         
         # Configure color tags for preview_text
-        self.preview_text.tag_config("hex_data", foreground="#0066CC", font=("Courier", 11, "bold"))
-        self.preview_text.tag_config("label", foreground="#666666", font=("Courier", 11))
-        self.preview_text.tag_config("value", foreground="#009900", font=("Courier", 11, "bold"))
-        self.preview_text.tag_config("error", foreground="#CC0000", font=("Courier", 11, "bold"))
+        configure_text_widget(self.preview_text, "preview")
+        self.preview_text.tag_config("hex_data", foreground="#0066CC", font=FONTS['mono_bold'])
+        self.preview_text.tag_config("label", foreground="#666666", font=FONTS['mono'])
+        self.preview_text.tag_config("value", foreground="#009900", font=FONTS['mono_bold'])
+        self.preview_text.tag_config("error", foreground="#CC0000", font=FONTS['mono_bold'])
         
         # Parsed fields section - aligned with hex section
-        tk.Label(preview_container, text="Parsed:",
-                font=('Arial', 10, 'bold'), width=12, anchor='e').grid(row=1, column=0, 
+        ttk.Label(preview_container, text="Parsed:",
+                font=FONTS['ui_bold'], width=12, anchor='e').grid(row=1, column=0, 
                 padx=(0, 10), pady=3, sticky='e')
-        self.parsed_text = tk.Text(preview_container, height=8, width=50, font=("Courier", 10),
+        self.parsed_text = tk.Text(preview_container, height=8, width=50, font=FONTS['mono'],
                                   relief=tk.SUNKEN, bd=1)
         self.parsed_text.grid(row=1, column=1, pady=3, sticky='ew')
         
         # Configure color tags for parsed_text
-        self.parsed_text.tag_config("field_label", foreground="#666666", font=("Courier", 10))
-        self.parsed_text.tag_config("field_value", foreground="#0066CC", font=("Courier", 10, "bold"))
-        self.parsed_text.tag_config("func_code", foreground="#9900CC", font=("Courier", 10, "bold"))
-        self.parsed_text.tag_config("address", foreground="#FF6600", font=("Courier", 10, "bold"))
-        self.parsed_text.tag_config("separator", foreground="#999999", font=("Courier", 10))
-        self.parsed_text.tag_config("error", foreground="#CC0000", font=("Courier", 10, "bold"))
+        self.parsed_text.tag_config("field_label", foreground="#666666", font=FONTS['mono'])
+        self.parsed_text.tag_config("field_value", foreground="#0066CC", font=FONTS['mono_bold'])
+        self.parsed_text.tag_config("func_code", foreground="#9900CC", font=FONTS['mono_bold'])
+        self.parsed_text.tag_config("address", foreground="#FF6600", font=FONTS['mono_bold'])
+        self.parsed_text.tag_config("separator", foreground="#999999", font=FONTS['mono'])
+        self.parsed_text.tag_config("error", foreground="#CC0000", font=FONTS['mono_bold'])
         
         # Checksum status - aligned with parsed text start
-        self.checksum_label = tk.Label(preview_container, text="Checksum: Not calculated",
-                                      font=('Arial', 10),
+        self.checksum_label = ttk.Label(preview_container, text="Checksum: Not calculated",
+                                      font=FONTS['ui'],
                                       anchor='w')
         self.checksum_label.grid(row=2, column=1, pady=5, sticky='w')
         
         # === RIGHT COLUMN CONTENT ===
         
         # Communication Log with white background - now in right column, full height
-        log_frame = tk.LabelFrame(right_column, text="Communication Log", 
-                                 fg='#212121',
-                                 font=('Arial', 10, 'bold'),
-                                 relief=tk.GROOVE, bd=2)
+        log_frame = ttk.LabelFrame(right_column, text="Communication Log", padding="8")
         log_frame.pack(fill=tk.BOTH, expand=True, padx=5)
         
         # Create log with consistent padding, larger for right column
-        log_container = tk.Frame(log_frame)
+        log_container = ttk.Frame(log_frame)
         log_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
         
         # Larger log display to take advantage of right column space
         self.log_display = scrolledtext.ScrolledText(log_container, wrap=tk.WORD, height=20, 
-                                                    width=40, font=("Courier", 11), 
+                                                    width=40, font=FONTS['mono'], 
                                                     relief=tk.SUNKEN, bd=1)
         self.log_display.pack(fill=tk.BOTH, expand=True)
         
@@ -398,7 +390,7 @@ class HostTab:
                 # Update checksum status
                 checksum = (packet_bytes[-2] << 8) | packet_bytes[-1] if len(packet_bytes) >= 2 else 0
                 self.checksum_label.config(text=f"Checksum: 0x{checksum:04X} (Fletcher-16)",
-                                         fg='green')
+                                         foreground='green')
             else:
                 # Show informative message when packet can't be built
                 self.preview_text.delete(1.0, tk.END)
@@ -416,13 +408,13 @@ class HostTab:
                     self.preview_text.insert(tk.END, "Invalid input format", "error")
                 self.parsed_text.delete(1.0, tk.END)
                 self.parsed_text.insert(tk.END, "Waiting for valid input...", "label")
-                self.checksum_label.config(text="Checksum: N/A", fg='gray')
+                self.checksum_label.config(text="Checksum: N/A", foreground='gray')
         except Exception as e:
             self.preview_text.delete(1.0, tk.END)
             self.preview_text.insert(tk.END, "Error: ", "error")
             self.preview_text.insert(tk.END, str(e), "error")
             self.parsed_text.delete(1.0, tk.END)
-            self.checksum_label.config(text="Checksum: Error", fg='red')
+            self.checksum_label.config(text="Checksum: Error", foreground='red')
     
     def parse_packet_fields(self, packet, packet_bytes):
         """Parse packet into human-readable fields"""

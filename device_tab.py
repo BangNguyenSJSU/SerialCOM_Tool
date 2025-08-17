@@ -230,12 +230,12 @@ class DeviceTab:
         incoming_stats = ttk.Frame(self.incoming_frame)
         incoming_stats.pack(fill=tk.X, pady=(0, self.PAD))
         
-        ttk.Label(incoming_stats, text="Total:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
-        self.incoming_total_label = ttk.Label(incoming_stats, text="0", font=("Cascadia Mono", 10, "bold"))
+        ttk.Label(incoming_stats, text="Total:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        self.incoming_total_label = ttk.Label(incoming_stats, text="0", font=FONTS['mono_bold'])
         self.incoming_total_label.pack(side=tk.LEFT, padx=(4, 12))
         
-        ttk.Label(incoming_stats, text="Errors:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
-        self.incoming_error_label = ttk.Label(incoming_stats, text="0", font=("Cascadia Mono", 10), foreground="red")
+        ttk.Label(incoming_stats, text="Errors:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        self.incoming_error_label = ttk.Label(incoming_stats, text="0", font=FONTS['mono'], foreground="red")
         self.incoming_error_label.pack(side=tk.LEFT, padx=(4, 12))
         
         ttk.Button(incoming_stats, text="Reset", width=6, command=self.reset_incoming_stats).pack(side=tk.RIGHT)
@@ -263,7 +263,7 @@ class DeviceTab:
         # Log text area with reduced width
         self.incoming_request_log = scrolledtext.ScrolledText(
             self.incoming_frame, wrap=tk.NONE, height=12, width=35,
-            font=("Cascadia Mono", 9), padx=8, pady=8)
+            font=FONTS['mono_small'], padx=8, pady=8)
         self.incoming_request_log.pack(fill=tk.BOTH, expand=True)
         
         # Outgoing Responses Panel
@@ -275,12 +275,12 @@ class DeviceTab:
         outgoing_stats = ttk.Frame(self.outgoing_frame)
         outgoing_stats.pack(fill=tk.X, pady=(0, self.PAD))
         
-        ttk.Label(outgoing_stats, text="Total:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
-        self.outgoing_total_label = ttk.Label(outgoing_stats, text="0", font=("Cascadia Mono", 10, "bold"))
+        ttk.Label(outgoing_stats, text="Total:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        self.outgoing_total_label = ttk.Label(outgoing_stats, text="0", font=FONTS['mono_bold'])
         self.outgoing_total_label.pack(side=tk.LEFT, padx=(4, 12))
         
-        ttk.Label(outgoing_stats, text="Errors:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
-        self.outgoing_error_label = ttk.Label(outgoing_stats, text="0", font=("Cascadia Mono", 10), foreground="red")
+        ttk.Label(outgoing_stats, text="Errors:", font=FONTS['ui_small']).pack(side=tk.LEFT)
+        self.outgoing_error_label = ttk.Label(outgoing_stats, text="0", font=FONTS['mono'], foreground="red")
         self.outgoing_error_label.pack(side=tk.LEFT, padx=(4, 12))
         
         ttk.Button(outgoing_stats, text="Reset", width=6, command=self.reset_outgoing_stats).pack(side=tk.RIGHT)
@@ -308,12 +308,12 @@ class DeviceTab:
         # Log text area with reduced width
         self.outgoing_response_log = scrolledtext.ScrolledText(
             self.outgoing_frame, wrap=tk.NONE, height=12, width=35,
-            font=("Cascadia Mono", 9), padx=8, pady=8)
+            font=FONTS['mono_small'], padx=8, pady=8)
         self.outgoing_response_log.pack(fill=tk.BOTH, expand=True)
         
         # Configure text tags
         for log in [self.incoming_request_log, self.outgoing_response_log]:
-            log.tag_config("header", foreground="blue", font=("Cascadia Mono", 9, "bold"))
+            log.tag_config("header", foreground="blue", font=FONTS['mono_bold'])
             log.tag_config("data", foreground="black")
             log.tag_config("error", foreground="red")
     
@@ -375,7 +375,7 @@ class DeviceTab:
         # Register display text area
         self.register_display = scrolledtext.ScrolledText(
             reg_frame, wrap=tk.NONE, height=15, 
-            font=("Cascadia Mono", 10), padx=10, pady=10)
+            font=FONTS['mono'], padx=10, pady=10)
         self.register_display.pack(fill=tk.BOTH, expand=True)
     
     def clear_log(self, log_widget):
@@ -406,7 +406,7 @@ class DeviceTab:
                 tooltip = tk.Toplevel()
                 tooltip.wm_overrideredirect(True)
                 tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
-                label = tk.Label(tooltip, text=text, background="lightyellow", font=("Segoe UI", 9))
+                label = tk.Label(tooltip, text=text, font=FONTS['ui_small'])
                 label.pack()
                 widget.tooltip = tooltip
         

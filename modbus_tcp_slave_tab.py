@@ -174,15 +174,15 @@ class ModbusTCPSlaveTab:
         row2.pack(fill=tk.X, pady=(4, 0))
         
         # Status section
-        ttk.Label(row2, text="Status:", font=('Arial', 9)).pack(side=tk.LEFT)
+        ttk.Label(row2, text="Status:", font=FONTS['ui_small']).pack(side=tk.LEFT)
         self.status_label = ttk.Label(row2, text="Server Stopped", 
-                                    foreground=COLORS['fg_disconnected'], font=('Arial', 9, 'bold'))
+                                    foreground=COLORS['fg_disconnected'], font=FONTS['ui_bold'])
         self.status_label.pack(side=tk.LEFT, padx=(4, 20))
         
         # Connection section
-        ttk.Label(row2, text="Connection:", font=('Arial', 9)).pack(side=tk.LEFT)
+        ttk.Label(row2, text="Connection:", font=FONTS['ui_small']).pack(side=tk.LEFT)
         self.connection_label = ttk.Label(row2, text="No client connected", foreground=COLORS['fg_disconnected'],
-                                        font=('Arial', 9))
+                                        font=FONTS['ui_small'])
         self.connection_label.pack(side=tk.LEFT, padx=(4, 0))
     
     def create_statistics_section(self):
@@ -229,7 +229,7 @@ class ModbusTCPSlaveTab:
         
         # Checkbox with matching background
         self.error_checkbox = tk.Checkbutton(error_content, text="Enable Error Simulation",
-                                           command=self.toggle_error_options, font=('Arial', 9))
+                                           command=self.toggle_error_options, font=FONTS['ui_small'])
         self.error_checkbox.pack(anchor=tk.W, pady=(0, 4))
         
         # Radio buttons in 2-column layout with matching background
@@ -253,7 +253,7 @@ class ModbusTCPSlaveTab:
                 row = i // 2
                 col = i % 2
                 radio = tk.Radiobutton(radio_frame, text=text, variable=self.error_type,
-                                     font=('Arial', 8))
+                                     font=FONTS['ui_small'])
                 radio.grid(row=row, column=col, sticky=tk.W, pady=1, padx=2)
                 self.error_radios.append(radio)
         
@@ -273,16 +273,16 @@ class ModbusTCPSlaveTab:
         row1.pack(fill=tk.X, pady=(0, 4))
         
         # Left side: Input fields with right-aligned labels
-        ttk.Label(row1, text="Addr:", font=('Arial', 9), 
+        ttk.Label(row1, text="Addr:", font=FONTS['ui_small'], 
                 width=5, anchor='e').pack(side=tk.LEFT)
         self.reg_addr_var = tk.StringVar(value="0000")
-        self.reg_addr_entry = ttk.Entry(row1, textvariable=self.reg_addr_var, width=5, font=('Arial', 9))
+        self.reg_addr_entry = ttk.Entry(row1, textvariable=self.reg_addr_var, width=5, font=FONTS['mono_small'])
         self.reg_addr_entry.pack(side=tk.LEFT, padx=(2, 8))
         
-        ttk.Label(row1, text="Value:", font=('Arial', 9), 
+        ttk.Label(row1, text="Value:", font=FONTS['ui_small'], 
                 width=5, anchor='e').pack(side=tk.LEFT)
         self.reg_value_var = tk.StringVar(value="0000")
-        self.reg_value_entry = ttk.Entry(row1, textvariable=self.reg_value_var, width=5, font=('Arial', 9))
+        self.reg_value_entry = ttk.Entry(row1, textvariable=self.reg_value_var, width=5, font=FONTS['mono_small'])
         self.reg_value_entry.pack(side=tk.LEFT, padx=(2, 8))
         
         # Right side: Action buttons grouped together
@@ -399,7 +399,7 @@ class ModbusTCPSlaveTab:
         """Create register map display"""
         reg_display_frame = tk.LabelFrame(parent, text="Register Map",
                                          fg='#212121',
-                                         font=('Arial', 10, 'bold'),
+                                         font=FONTS['ui_title'],
                                          relief=tk.RAISED, bd=2)
         reg_display_frame.pack(fill=tk.BOTH, expand=True, padx=5)
         
@@ -410,15 +410,15 @@ class ModbusTCPSlaveTab:
         # Register map with enhanced styling
         self.register_display = scrolledtext.ScrolledText(
             regmap_container, wrap=tk.NONE, height=20, width=50,
-            font=("Courier", 11),
+            font=FONTS['mono'],
             relief=tk.SUNKEN, bd=1
         )
         self.register_display.pack(fill=tk.BOTH, expand=True)
         
         # Configure tags for better readability
-        self.register_display.tag_config("header", font=("Courier", 11, "bold"), foreground="#333333")
-        self.register_display.tag_config("address", font=("Courier", 11, "bold"), foreground="#0066CC")
-        self.register_display.tag_config("value", font=("Courier", 11), foreground="#006600")
+        self.register_display.tag_config("header", font=FONTS['mono_bold'], foreground="#333333")
+        self.register_display.tag_config("address", font=FONTS['mono_bold'], foreground="#0066CC")
+        self.register_display.tag_config("value", font=FONTS['mono'], foreground="#006600")
     
     def create_communication_log(self, parent):
         """Create communication log"""
@@ -445,7 +445,7 @@ class ModbusTCPSlaveTab:
         
         # Log display with proper styling
         self.log_display = scrolledtext.ScrolledText(log_container, wrap=tk.WORD, height=20,
-                                                    font=("Courier", 10),
+                                                    font=FONTS['mono'],
                                                     relief=tk.SUNKEN, bd=1)
         self.log_display.pack(fill=tk.BOTH, expand=True)
         

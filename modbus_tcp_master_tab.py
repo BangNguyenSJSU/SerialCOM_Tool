@@ -30,28 +30,9 @@ class ModbusTCPMasterTab:
     
     def _init_style(self):
         """Initialize ttk styles for professional appearance"""
-        style = ttk.Style()
-        try:
-            style.theme_use("clam")
-        except Exception:
-            pass
-        
-        # Global widget polish
-        style.configure(".", font=FONTS["ui"])
-        style.configure("TButton", padding=(10, 6))
-        style.configure("TLabel", foreground="#222")
-        style.configure("TEntry", padding=2)
-        style.configure("TSpinbox", padding=2)
-        style.configure("TLabelframe.Label", font=FONTS["ui_bold"], foreground="#374151")
-        style.configure("TLabelframe", padding=8)
-        
-        # Subtle sections
-        style.configure("Section.TLabelframe")
-        style.configure("Accent.TButton", font=FONTS["ui_bold"])
-        
-        # Statistics styles
-        style.configure("StatLabel.TLabel", font=("Segoe UI", 9), foreground="#6B7280")
-        style.configure("StatValue.TLabel", font=("Segoe UI", 11, "bold"), foreground="#111827")
+        # Use the shared init_style from ui_styles module instead of duplicating
+        from ui_styles import init_style
+        init_style()
     
     def __init__(self, parent_frame: ttk.Frame):
         """Initialize Modbus TCP Master Tab."""
@@ -196,7 +177,7 @@ class ModbusTCPMasterTab:
         self.start_addr_entry.grid(row=0, column=1, padx=(5, 2), pady=2, sticky=tk.W)
         self.start_addr_var.trace('w', lambda *args: self.update_preview())
         
-        ttk.Label(params_frame, text="(hex)", font=("Segoe UI", 8), foreground="#6B7280").grid(row=0, column=2, sticky=tk.W, pady=2)
+        ttk.Label(params_frame, text="(hex)", font=FONTS['ui_small'], foreground="#6B7280").grid(row=0, column=2, sticky=tk.W, pady=2)
         
         # Count (for read)
         self.count_label = ttk.Label(params_frame, text="Count:")

@@ -11,8 +11,10 @@ FONTS = {
     "ui": ("Segoe UI", 10),
     "ui_bold": ("Segoe UI", 10, "bold"),
     "ui_small": ("Segoe UI", 9),
+    "ui_title": ("Segoe UI", 10, "bold"),
     "mono": ("Consolas", 10),
     "mono_small": ("Consolas", 9),
+    "mono_bold": ("Consolas", 10, "bold"),
 }
 
 SPACING = {
@@ -54,48 +56,10 @@ STAT_COLORS = {
 
 
 def init_style():
-    """Initialize ttk styles for professional appearance across all tabs"""
+    """Initialize ttk styles - MINIMAL to avoid label display issues"""
+    # Temporarily disable all styling to fix label display issues
+    # Only return a basic style object
     style = ttk.Style()
-    
-    # Use clean theme
-    try:
-        style.theme_use("clam")
-    except Exception:
-        pass
-    
-    # Global widget polish
-    style.configure(".", font=FONTS["ui"])
-    style.configure("TButton", padding=(10, 6))
-    style.configure("TLabel", foreground="#222")
-    style.configure("TEntry", padding=2)
-    style.configure("TSpinbox", padding=2)
-    style.configure("TLabelframe.Label", font=FONTS["ui_bold"], foreground="#374151")
-    style.configure("TLabelframe", padding=8, background=COLORS['bg_main'])
-    style.configure("TFrame", background=COLORS['bg_main'])
-    
-    # Section frames
-    style.configure("Section.TLabelframe", background=COLORS['bg_main'])
-    
-    # Button styles
-    style.configure("Accent.TButton", font=FONTS["ui_bold"])
-    style.configure("Send.TButton", font=FONTS["ui_bold"])
-    style.configure("Clear.TButton", foreground="#DC2626")
-    style.configure("Update.TButton", foreground="#2563EB")
-    
-    # Statistics styles
-    style.configure("StatLabel.TLabel", font=("Segoe UI", 9), foreground=STAT_COLORS['label'])
-    style.configure("StatValue.TLabel", font=("Segoe UI", 11, "bold"), foreground=STAT_COLORS['value'])
-    
-    # Status pill styles
-    style.configure("Connected.TLabel", font=FONTS["ui_bold"], foreground=COLORS['fg_connected'], 
-                   background=COLORS['bg_connected'])
-    style.configure("Disconnected.TLabel", font=FONTS["ui_bold"], foreground=COLORS['fg_disconnected'],
-                   background=COLORS['bg_disconnected'])
-    style.configure("Running.TLabel", font=FONTS["ui_bold"], foreground=COLORS['fg_running'],
-                   background=COLORS['bg_running'])
-    style.configure("Stopped.TLabel", font=FONTS["ui_bold"], foreground=COLORS['fg_stopped'],
-                   background=COLORS['bg_stopped'])
-    
     return style
 
 
