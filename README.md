@@ -3,8 +3,12 @@
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-4.3.0-success)
 
-A comprehensive cross-platform communication tool for serial and network protocols, featuring advanced debugging capabilities for embedded systems development and testing.
+A comprehensive cross-platform communication tool for serial and network protocols with AI-powered analysis, featuring advanced debugging capabilities for embedded systems development and testing.
+
+## 🎯 **Current Status: Version 4.3.0**
+**Latest Features**: OpenAI-powered serial communication analysis, intelligent pattern recognition, and complete project reorganization for enhanced developer experience.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -30,12 +34,14 @@ SerialCOM Tool is a professional-grade communication suite designed for engineer
 ## Key Features
 
 ### Core Capabilities
+- **🤖 AI-Powered Analysis**: OpenAI GPT-3.5-turbo integration for intelligent serial communication analysis
 - **Multi-Protocol Support**: Serial, Custom Register-based Protocol, Modbus TCP
 - **Cross-Platform**: Native support for Windows, macOS, and Linux
-- **Real-Time Monitoring**: Live data visualization with hex/ASCII views
+- **Real-Time Monitoring**: Live data visualization with hex/ASCII views and AI insights
 - **Non-Blocking I/O**: Responsive GUI during all operations
 - **Data Logging**: Timestamped CSV export for analysis
 - **Protocol Analysis**: Packet inspection, checksum verification, error detection
+- **🔒 Secure Configuration**: Encrypted API key storage with PBKDF2 + Fernet encryption
 
 ### Communication Features
 - **Serial Communication**: Full RS-232/485 support with hardware flow control
@@ -511,21 +517,30 @@ python test_port_detection.py
 ### Project Structure
 ```
 SerialCOM_Tool/
-├── README.md                  # Documentation
-├── requirements.txt           # Dependencies
-├── serial_gui.py             # Main application
-├── protocol.py               # Custom protocol
-├── host_tab.py               # Master mode
-├── device_tab.py             # Slave mode
-├── modbus_tcp_protocol.py    # Modbus protocol
-├── modbus_tcp_slave_tab.py   # Modbus server
-├── modbus_tcp_master_tab.py  # Modbus client
-├── ai_analyzer.py            # AI analysis engine
-├── ai_config.py              # AI configuration management
-├── ai_settings_dialog.py     # AI settings interface
-├── test_protocol.py          # Protocol tests
-├── test_modbus_tcp.py        # Modbus tests
-└── create_ports.sh           # Virtual ports script
+├── README.md                     # This documentation
+├── CHANGELOG.md                  # Detailed version history & features
+├── requirements.txt              # Python dependencies
+├── serial_gui.py                 # Main application (renamed from main_application.py)
+├── protocol.py                   # Custom protocol (renamed from custom_protocol.py)
+├── host_tab.py                   # Master mode implementation
+├── device_tab.py                 # Slave mode implementation
+├── modbus_tcp_protocol.py        # Modbus TCP frame handling
+├── modbus_tcp_slave_tab.py       # TCP server with responsive 4-column layout
+├── modbus_tcp_master_tab.py      # TCP client implementation
+├── ai_analyzer.py                # 🤖 AI analysis engine with OpenAI integration
+├── ai_config.py                  # 🔒 Secure API key management & configuration
+├── ai_settings_dialog.py         # AI settings user interface
+├── ui_styles.py                  # Comprehensive UI styling system
+├── channel_register_map.py       # Register mapping utilities
+├── testScript/                   # 📁 Consolidated test files (25 scripts)
+│   ├── test_protocol.py          # Custom protocol validation
+│   ├── test_modbus_tcp.py        # Modbus TCP testing
+│   ├── test_ai_integration.py    # AI analysis testing
+│   ├── verify_*.py               # Verification scripts
+│   ├── debug_*.py                # Debug utilities
+│   └── setup_*.py                # Configuration helpers
+├── image/                        # UI assets and screenshots
+└── virtual_ports.sh              # Virtual port creation script
 ```
 
 ### System Architecture Overview

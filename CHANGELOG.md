@@ -2,6 +2,53 @@
 
 All notable changes, development notes, and UI improvements for this project are documented in this file.
 
+## [4.3.1] - 2025-08-17 - Project Organization & Developer Experience Enhancement
+
+### 🏗️ Project Structure Optimization
+
+#### **File Organization & Naming Convention Improvements**
+- **Consolidated Test Files**: Moved all 25 test scripts from scattered `testScripts/` to unified `testScript/` directory
+- **Fixed Malformed Filename**: Corrected `C:SerialCOM_Toolui_styles.py` → `serial_gui_styles.py`
+- **Intuitive Main File Naming**: Renamed `main_application.py` → `serial_gui.py` (matches CLAUDE.md convention)
+- **Protocol File Alignment**: Renamed `custom_protocol.py` → `protocol.py` (matches project documentation)
+
+#### **Enhanced Developer Navigation**
+- **Clear File Purposes**: All Python files now have descriptive, developer-friendly names
+- **Logical Test Organization**: 25 test files properly categorized in single `testScript/` folder
+- **Consistent Naming**: File names align with project documentation and conventions
+
+#### **Updated Project Structure**
+```
+SerialCOM_Tool/
+├── serial_gui.py                 # Main application (renamed & improved)
+├── protocol.py                   # Custom protocol (renamed for clarity)
+├── serial_gui_styles.py          # UI styles (fixed malformed filename)
+├── testScript/                   # 📁 All test files consolidated (25 scripts)
+│   ├── test_protocol.py          # Protocol validation
+│   ├── test_modbus_tcp.py        # Modbus testing
+│   ├── test_ai_integration.py    # AI analysis tests
+│   ├── debug_*.py                # Debug utilities
+│   ├── setup_*.py                # Configuration scripts
+│   └── verify_*.py               # Verification tools
+└── [other core files remain unchanged]
+```
+
+### 📋 Repository Cleanup Benefits
+
+1. **Improved Developer Onboarding**: Clear, intuitive file names reduce confusion
+2. **Better Code Navigation**: Developers can quickly locate relevant files
+3. **Consistent Documentation**: File names match project documentation
+4. **Organized Testing**: All test scripts in one logical location
+5. **Professional Structure**: Clean, maintainable project organization
+
+### 🔧 Technical Improvements
+- **No Breaking Changes**: All functionality remains intact
+- **Import Independence**: No import statements required updating
+- **Clean Git History**: Proper file renames preserve version control history
+- **Documentation Alignment**: README.md updated to reflect new structure
+
+---
+
 ## [4.3.0] - 2025-08-15 - AI Analysis Integration & Smart Trigger System
 
 ### 🤖 Major AI Integration Features
@@ -202,6 +249,86 @@ pip install -r requirements.txt
 - ✅ Modbus TCP: Functional
 - ✅ Thread management: Fixed
 - ✅ Cross-platform: Tested on Windows/macOS/Linux
+
+### Build v4.2.0 Details (Enhanced Debug Messages & Visual Improvements)
+
+#### ✅ Build Completed Successfully
+**Build Date**: January 13, 2025  
+**Version**: 4.2.0  
+**Executable**: `SerialCOM_Tool_v4.2.exe`  
+**Size**: 10.5 MB  
+**Target**: Windows 7+ (64-bit)
+
+#### What's New in v4.2
+- **Enhanced Debug Messages**: Complete overhaul with full register display and indexed values `[0]=0x03E8 [1]=0x2EE0`
+- **Advanced Visual Improvements**: Orange debug messages on light yellow background, Consolas monospace font
+- **Master Preview**: 5 distinct color categories for different data types
+- **Auto-loading Test Pattern**: Checkbox to automatically populate registers on server start
+- **Big-Endian Verification**: Confirmed network byte order throughout application
+
+#### Dependencies Included
+- **Python 3.12.10**: Core runtime
+- **PySerial 3.5**: Serial communication
+- **Tkinter**: GUI framework with all widgets
+- **All custom modules**: Protocol, Modbus TCP, Host/Device tabs
+- **Image assets**: All PNG files for UI elements
+
+#### Build Command Used
+```bash
+pyinstaller --onefile --windowed --name "SerialCOM_Tool_v4.2" 
+    --add-data "image/*;image" 
+    --hidden-import serial 
+    --hidden-import serial.tools 
+    --hidden-import serial.tools.list_ports 
+    --hidden-import serial.tools.list_ports_windows 
+    --hidden-import struct 
+    --hidden-import datetime 
+    --hidden-import tkinter.messagebox 
+    --hidden-import tkinter.filedialog 
+    --hidden-import tkinter.scrolledtext 
+    serial_gui.py
+```
+
+#### Color Scheme
+**Communication Logs**:
+- **Request Messages**: Bright Green (#00AA00) Bold
+- **Response Messages**: Bright Purple (#AA00AA) Bold
+- **Debug Messages**: Orange (#FF6600) on Light Yellow Background
+- **Error Messages**: Bright Red (#CC0000) Bold
+- **Info Messages**: Nice Blue (#0066CC)
+
+**Master Tab Preview**:
+- **Headers**: Blue (#0066CC) on Light Blue Background
+- **Field Names**: Dark Gray (#2E2E2E)
+- **Values**: Green (#008000) on Light Green Background
+- **Hex Values**: Purple (#8B008B) on Light Purple Background
+- **Addresses**: Orange (#FF6600) on Light Yellow Background
+
+#### Platform Support
+- **Windows**: 7, 8, 10, 11 (64-bit)
+- **Dependencies**: None required on target machine
+- **Installation**: Just copy and run the .exe file
+
+#### Protocol Support
+- **Modbus TCP**: Master and Slave modes with full register operations
+- **Custom Protocol**: Original register-based communication with Fletcher-16 checksums
+- **Serial Communication**: Full RS-232/485 support
+- **Big-Endian**: Network byte order throughout all protocols
+
+#### Features Included
+- ✅ All tabs: Data Display, Host, Device, Modbus TCP Master, Modbus TCP Slave
+- ✅ Enhanced debug logging with indexed register displays
+- ✅ Auto-loading test pattern with 187 realistic registers
+- ✅ Color-coded communication logs for easy debugging
+- ✅ Export/import functionality for register maps
+- ✅ Error simulation and comprehensive testing tools
+- ✅ Real-time statistics and connection monitoring
+
+#### Performance
+- **Startup Time**: < 3 seconds
+- **Memory Usage**: ~50MB typical
+- **GUI Responsiveness**: 25ms update intervals
+- **Network Performance**: Full-speed TCP communication
 
 ---
 
