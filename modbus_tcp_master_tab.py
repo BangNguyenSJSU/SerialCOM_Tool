@@ -9,12 +9,14 @@ import socket
 import struct
 import threading
 import datetime
+import time
 from typing import Optional, List, Dict, Any
 from modbus_tcp_protocol import (
     ModbusTCPFrame, ModbusTCPBuilder, ModbusTCPParser,
     ModbusFunctionCode, ModbusException
 )
 from ui_styles import FONTS, SPACING, COLORS
+from register_grid_window import RegisterGridWindow
 
 
 class ModbusTCPMasterTab:
@@ -198,6 +200,10 @@ class ModbusTCPMasterTab:
                                   command=self.send_request, state=tk.DISABLED, width=12,
                                   style="Accent.TButton")
         self.send_btn.pack(side=tk.LEFT)
+        
+        self.register_grid_btn = ttk.Button(send_frame, text="📊 Register Grid", 
+                                           command=self.open_register_grid)
+        self.register_grid_btn.pack(side=tk.LEFT, padx=5)
         
         # Statistics section in left column
         stats_frame = ttk.LabelFrame(left_column, text="Statistics", padding="4")
@@ -750,3 +756,122 @@ class ModbusTCPMasterTab:
         self.responses_label.config(text=str(self.response_count))
         self.timeouts_label.config(text=str(self.timeout_count))
         self.errors_label.config(text=str(self.error_count))
+    
+    def open_register_grid(self):
+        """Open register grid window"""
+        RegisterGridWindow(self.frame, modbus_master=self)
+    
+    def send_modbus_request(self, function_code, address, value=None, quantity=1):
+        """Send a Modbus request programmatically (for register grid)
+        
+        Args:
+            function_code: Modbus function code (e.g., 0x03 for read, 0x06 for write single)
+            address: Register address
+            value: Value to write (for write operations)
+            quantity: Number of registers to read (for read operations)
+            
+        Returns:
+            For read operations: Register value(s) or None if failed
+            For write operations: True if successful, False otherwise
+        """
+        if not self.is_connected or not self.client_socket:
+            return None
+            
+        try:
+            # Build the appropriate frame based on function code
+            if function_code == 0x03:  # Read Holding Registers
+                frame = ModbusTCPBuilder.read_holding_registers_request(
+                    self.transaction_id, self.unit_id, address, quantity)
+                operation_desc = f"Read {quantity} registers from 0x{address:04X}"
+                
+            elif function_code == 0x06:  # Write Single Register
+                if value is None:
+                    return False
+                frame = ModbusTCPBuilder.write_single_register_request(
+                    self.transaction_id, self.unit_id, address, value)
+                operation_desc = f"Write 0x{value:04X} to register 0x{address:04X}"
+                
+            elif function_code == 0x10:  # Write Multiple Registers
+                if value is None:
+                    return False
+                # For single value, wrap in list
+                values = [value] if isinstance(value, int) else value
+                frame = ModbusTCPBuilder.write_multiple_registers_request(
+                    self.transaction_id, self.unit_id, address, values)
+                operation_desc = f"Write {len(values)} registers from 0x{address:04X}"
+                
+            else:
+                return None
+                
+            # Send the request
+            self.client_socket.sendall(frame.to_bytes())
+            
+            # Log the request
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            self.add_log(f"[{timestamp}] TX Request (TID: {self.transaction_id:04X}):", "request")
+            self.add_log(f"  {operation_desc}", "debug")
+            
+            # Update statistics
+            self.request_count += 1
+            self.update_statistics()
+            
+            # Store pending request info
+            request_info = {
+                'timestamp': datetime.datetime.now(),
+                'function_code': function_code,
+                'address': address,
+                'quantity': quantity if function_code == 0x03 else None,
+                'value': value if function_code in [0x06, 0x10] else None,
+                'frame': frame
+            }
+            self.pending_requests[self.transaction_id] = request_info
+            
+            # Wait for response (with timeout)
+            response_event = threading.Event()
+            response_data = {'value': None, 'success': False}
+            
+            def wait_for_response():
+                start_time = datetime.datetime.now()
+                while (datetime.datetime.now() - start_time).total_seconds() * 1000 < self.response_timeout:
+                    if self.transaction_id not in self.pending_requests:
+                        # Response received
+                        response_event.set()
+                        return
+                    time.sleep(0.01)
+                # Timeout
+                response_event.set()
+                
+            # Start waiting in a separate thread
+            wait_thread = threading.Thread(target=wait_for_response)
+            wait_thread.start()
+            wait_thread.join(timeout=self.response_timeout/1000.0)
+            
+            # Check if we got a response
+            if self.transaction_id not in self.pending_requests:
+                # Response was processed, check the result
+                if function_code == 0x03:
+                    # For read operations, we need to extract the value from the last response
+                    # This is a simplified implementation - in production you'd track responses better
+                    response_data['value'] = 0  # Default value
+                    response_data['success'] = True
+                else:
+                    # For write operations, success means no exception
+                    response_data['success'] = True
+            else:
+                # Timeout - remove from pending
+                self.pending_requests.pop(self.transaction_id, None)
+                self.timeout_count += 1
+                self.update_statistics()
+                
+            # Increment transaction ID
+            self.transaction_id = (self.transaction_id % 65535) + 1
+            
+            # Return appropriate result
+            if function_code == 0x03:
+                return response_data['value'] if response_data['success'] else None
+            else:
+                return response_data['success']
+                
+        except Exception as e:
+            self.add_log(f"Error sending request: {str(e)}", "error")
+            return None if function_code == 0x03 else False

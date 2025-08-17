@@ -15,6 +15,7 @@ from protocol import (
 )
 from ui_styles import FONTS, SPACING, COLORS
 from serial_connection import SerialConnection
+from register_grid_window import RegisterGridWindow
 
 
 class HostTab:
@@ -210,21 +211,27 @@ class HostTab:
         
         clear_btn = ttk.Button(control_content, text="Clear Log", command=self.clear_log, 
                               style='Clear.TButton', width=button_width)
-        clear_btn.grid(row=0, column=1, padx=(0, 20), sticky='w')
+        clear_btn.grid(row=0, column=1, padx=(0, 10), sticky='w')
+        
+        # Register Grid button
+        register_grid_btn = ttk.Button(control_content, text="📊 Register Grid", 
+                                      command=self.open_register_grid, 
+                                      width=button_width)
+        register_grid_btn.grid(row=0, column=2, padx=(0, 20), sticky='w')
         
         # Timeout setting - aligned with buttons
         ttk.Label(control_content, text="Timeout (ms):",
-                anchor='e', width=12).grid(row=0, column=2, padx=(0, 10), sticky='e')
+                anchor='e', width=12).grid(row=0, column=3, padx=(0, 10), sticky='e')
         self.timeout_var = tk.IntVar(value=self.response_timeout)
         timeout_spin = ttk.Spinbox(control_content, from_=100, to=5000, textvariable=self.timeout_var, 
                                    width=8, increment=100)
-        timeout_spin.grid(row=0, column=3, padx=(0, 10), sticky='w')
+        timeout_spin.grid(row=0, column=4, padx=(0, 10), sticky='w')
         self.timeout_var.trace('w', lambda *args: setattr(self, 'response_timeout', self.timeout_var.get()))
         
         # Timeout indicator (shows countdown when waiting for response)
         self.timeout_indicator = ttk.Label(control_content, text="",
                                          foreground='orange', font=FONTS['default'], width=15)
-        self.timeout_indicator.grid(row=0, column=4, padx=10, sticky='w')
+        self.timeout_indicator.grid(row=0, column=5, padx=10, sticky='w')
         
         # Packet Preview with amber background and parsed fields
         preview_frame = ttk.LabelFrame(left_column, text="Packet Preview & Inspection", padding="8")
@@ -724,6 +731,39 @@ class HostTab:
             
             self.log_display.insert(tk.END, 
                 f"[{timestamp}] RX Response (ID: {packet.message_id:02X}, Time: {elapsed:.1f}ms):\n", "system")
+            
+            # Handle response event for register grid integration
+            if 'request_event' in request and 'response_data' in request:
+                # Parse response for the register grid
+                parsed = PacketParser.parse_response(packet)
+                if parsed:
+                    if parsed.get('is_error'):
+                        request['response_data']['success'] = False
+                        request['response_data']['data'] = parsed['error_description']
+                    else:
+                        func = packet.function_code
+                        if func == FunctionCode.READ_SINGLE_RESP:
+                            request['response_data']['success'] = True
+                            request['response_data']['data'] = {
+                                'value': parsed['register_value']
+                            }
+                        elif func == FunctionCode.READ_MULTIPLE_RESP:
+                            request['response_data']['success'] = True
+                            request['response_data']['data'] = {
+                                'values': parsed.get('values', [])
+                            }
+                        elif func in [FunctionCode.WRITE_SINGLE_RESP, FunctionCode.WRITE_MULTIPLE_RESP]:
+                            request['response_data']['success'] = True
+                            request['response_data']['data'] = {
+                                'address': parsed['register_address'],
+                                'count': parsed.get('count', 1)
+                            }
+                else:
+                    request['response_data']['success'] = False
+                    request['response_data']['data'] = "Failed to parse response"
+                
+                # Signal the waiting thread
+                request['request_event'].set()
         else:
             self.log_display.insert(tk.END, 
                 f"[{timestamp}] RX Unexpected Response (ID: {packet.message_id:02X}):\n", "system")
@@ -785,3 +825,114 @@ class HostTab:
     def clear_log(self):
         """Clear the communication log"""
         self.log_display.delete(1.0, tk.END)
+    
+    def open_register_grid(self):
+        """Open register grid window"""
+        RegisterGridWindow(self.frame, host_tab=self)
+    
+    def send_protocol_request(self, function_code, start_addr, count=1, values=None):
+        """Send protocol request programmatically (for register grid integration).
+        
+        This method allows the register grid to send read/write requests through
+        the host tab's communication system.
+        
+        Args:
+            function_code: Protocol function code (0x01-0x04)
+            start_addr: Starting register address
+            count: Number of registers (for multiple operations)
+            values: List of values (for write operations)
+            
+        Returns:
+            Tuple of (success: bool, response_data: dict or error_message: str)
+        """
+        if not self.serial_connection.is_connected:
+            return False, "Not connected to device"
+        
+        try:
+            # Map function codes to operations
+            operation_map = {
+                0x01: "read_single",
+                0x02: "write_single", 
+                0x03: "read_multiple",
+                0x04: "write_multiple"
+            }
+            
+            operation = operation_map.get(function_code)
+            if not operation:
+                return False, f"Invalid function code: 0x{function_code:02X}"
+            
+            # Save current UI state
+            saved_operation = self.operation_var.get()
+            saved_addr = self.reg_addr_var.get()
+            saved_value = self.reg_value_var.get()
+            saved_count = self.count_var.get()
+            saved_values = self.values_var.get()
+            
+            # Set up for the requested operation
+            self.operation_var.set(operation)
+            self.reg_addr_var.set(f"{start_addr:04X}")
+            
+            if operation == "write_single" and values:
+                self.reg_value_var.set(f"{values[0]:04X}")
+            elif operation in ["read_multiple", "write_multiple"]:
+                self.count_var.set(count)
+                if operation == "write_multiple" and values:
+                    values_str = ",".join(f"{v:04X}" for v in values)
+                    self.values_var.set(values_str)
+            
+            # Build packet
+            packet = self.build_packet()
+            if not packet:
+                return False, "Failed to build packet"
+            
+            # Send request
+            packet_bytes = packet.to_bytes()
+            
+            # Store pending request info for response matching
+            request_event = threading.Event()
+            response_data = {"success": False, "data": None}
+            
+            self.pending_requests[packet.message_id] = {
+                'timestamp': datetime.datetime.now(),
+                'timeout_after': None,
+                'request_event': request_event,
+                'response_data': response_data,
+                'operation': operation,
+                'start_addr': start_addr,
+                'count': count
+            }
+            
+            # Send the packet
+            self.serial_connection.send_data(packet_bytes)
+            
+            # Wait for response with timeout
+            timeout_ms = self.response_timeout
+            if request_event.wait(timeout_ms / 1000.0):
+                # Response received
+                result = response_data.get("success", False)
+                data = response_data.get("data", "No data received")
+                
+                # Restore UI state
+                self.operation_var.set(saved_operation)
+                self.reg_addr_var.set(saved_addr)
+                self.reg_value_var.set(saved_value)
+                self.count_var.set(saved_count)
+                self.values_var.set(saved_values)
+                
+                return result, data
+            else:
+                # Timeout
+                if packet.message_id in self.pending_requests:
+                    del self.pending_requests[packet.message_id]
+                
+                # Restore UI state
+                self.operation_var.set(saved_operation)
+                self.reg_addr_var.set(saved_addr)
+                self.reg_value_var.set(saved_value)
+                self.count_var.set(saved_count)
+                self.values_var.set(saved_values)
+                
+                return False, "Request timeout"
+                
+        except Exception as e:
+            return False, f"Error: {str(e)}"

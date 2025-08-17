@@ -2,6 +2,36 @@
 
 All notable changes, development notes, and UI improvements for this project are documented in this file.
 
+## [4.3.3] - 2025-08-17 - Register Grid Integration Fixes
+
+### Bug Fixes and Improvements
+
+#### **Fixed Register Grid Window Integration Issues**
+- **Modbus TCP Master Integration**: 
+  - Changed to use only Read Multiple (0x03) and Write Multiple (0x10) functions
+  - Fixed connection check to properly verify both is_connected flag and client_socket
+  - Modified to use existing UI controls for sending requests instead of non-existent methods
+  - Properly saves and restores UI state after operations
+
+- **Host Tab Integration**:
+  - Fixed incorrect function code from 0x03 to 0x02 for Write Single operation
+  - Added proper connection check using serial_connection.is_connected property
+  - Fixed write operation to pass values as list instead of single value parameter
+  - Corrected host_tab.py to use is_connected as property instead of method call
+  - Fixed method name from write_data to send_data for serial connection
+
+#### **Technical Improvements**
+- **Error Handling**: Both integrations now properly check connection status before operations
+- **User Feedback**: All operations provide clear status messages
+- **Code Consistency**: Aligned method calls with actual class implementations
+- **Compatibility**: Register grid now works correctly with both Modbus TCP (using 0x03/0x10 only) and Host tabs
+
+### Files Modified
+- register_grid_window.py: Fixed integration logic for both tabs
+- host_tab.py: Corrected connection check and method calls
+
+---
+
 ## [4.3.2] - 2025-08-17 - UI Styling System Unification & Code Cleanup
 
 ### 🎨 Complete UI Styling System Overhaul

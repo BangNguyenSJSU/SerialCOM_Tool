@@ -55,6 +55,7 @@ SerialCOM Tool is a professional-grade communication suite designed for engineer
 - **Tabbed Interface**: Organized workspace for different protocols
 - **Color-Coded Display**: Visual differentiation of data types and packet components
 - **AI Analysis Integration**: OpenAI-powered intelligent analysis of serial communication data
+- **Register Grid View**: Interactive grid for viewing and editing register data from CSV files
 - **Search Functionality**: Quick data location in logs and registers
 - **Command History**: Arrow-key navigation through previous commands
 - **Auto-Scroll Control**: Manageable real-time data streams
@@ -459,10 +460,18 @@ Use com0com to create virtual COM port pairs (e.g., COM10 ↔ COM11)
 - Pattern: Click "Load Test Pattern"
 - Clear: Click "Clear All"
 
+**Register Grid View**
+- Click "Register Grid" button in Host or Modbus TCP Master tabs
+- Load CSV files containing register definitions
+- Interactive editing of register names, values, and descriptions
+- Direct read/write operations to connected devices
+- Export modified data back to CSV format
+- Supports intelligent column mapping for various CSV formats
+
 **Exporting Data**
-- Click "Export CSV" in Device tab
+- Click "Export CSV" in Device tab or Register Grid window
 - Saves current register map
-- Includes address and value columns
+- Includes address, name, value, and description columns
 
 ## Testing
 
@@ -527,12 +536,14 @@ SerialCOM_Tool/
 ├── modbus_tcp_protocol.py        # Modbus TCP frame handling
 ├── modbus_tcp_slave_tab.py       # TCP server with responsive 4-column layout
 ├── modbus_tcp_master_tab.py      # TCP client implementation
-├── ai_analyzer.py                # 🤖 AI analysis engine with OpenAI integration
-├── ai_config.py                  # 🔒 Secure API key management & configuration
+├── register_grid_window.py       # Register grid view for CSV data display/editing
+├── serial_connection.py          # Serial port connection management
+├── ai_analyzer.py                # AI analysis engine with OpenAI integration
+├── ai_config.py                  # Secure API key management & configuration
 ├── ai_settings_dialog.py         # AI settings user interface
 ├── ui_styles.py                  # Comprehensive UI styling system
 ├── channel_register_map.py       # Register mapping utilities
-├── testScript/                   # 📁 Consolidated test files (25 scripts)
+├── testScript/                   # Consolidated test files (25 scripts)
 │   ├── test_protocol.py          # Custom protocol validation
 │   ├── test_modbus_tcp.py        # Modbus TCP testing
 │   ├── test_ai_integration.py    # AI analysis testing
