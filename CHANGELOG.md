@@ -2,6 +2,35 @@
 
 All notable changes, development notes, and UI improvements for this project are documented in this file.
 
+## [4.3.4] - 2025-08-18 - Serial Communication Display Fix
+
+### Bug Fixes
+
+#### **Fixed Data Reception Display Issues**
+- **Host Tab**: 
+  - Fixed incoming response packets not being displayed in Communication Log
+  - Resolved issue where data queue wasn't being processed in `process_responses` method
+  - Added proper data queue processing to handle received serial data
+  - Enhanced TX packet logging with visual separators and status indicators
+
+- **Device Tab**:
+  - Fixed incoming request packets not being displayed in Incoming Requests log
+  - Resolved issue where `process_requests` method wasn't processing data queue
+  - Added proper queue processing to handle received serial data
+  - Improved visibility of raw data reception for debugging
+
+#### **Technical Improvements**
+- **Data Flow**: Restored proper data flow from serial port → data queue → packet processing → display
+- **Visual Feedback**: Added separator lines and status indicators (✅/❌) for better packet visibility
+- **Error Handling**: Enhanced error logging when serial port is not connected
+- **Code Consistency**: Both tabs now properly process their data queues every 5ms
+
+### Files Modified
+- host_tab.py: Fixed `process_responses` to actually process data queue
+- device_tab.py: Fixed `process_requests` to actually process data queue
+
+---
+
 ## [4.3.3] - 2025-08-17 - Register Grid Integration Fixes
 
 ### Bug Fixes and Improvements

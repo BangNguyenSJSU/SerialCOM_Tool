@@ -586,6 +586,10 @@ class HostTab:
         """
         if not self.serial_connection.is_connected:
             messagebox.showerror("Error", "Serial port not connected")
+            # Also log this error in the display
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            self.log_display.insert(tk.END, f"[{timestamp}] ERROR: Serial port not connected\n", "error")
+            self.log_display.see(tk.END)
             return
         
         packet = self.build_packet()
@@ -593,20 +597,33 @@ class HostTab:
             return
         
         try:
+            # First log that we're about to send
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            self.log_display.insert(tk.END, f"[{timestamp}] ════════════════════════════════════════\n", "system")
+            self.log_display.insert(tk.END, f"[{timestamp}] TX Request (ID: {self.message_id:02X}):\n", "system")
+            
             # Send packet
             packet_bytes = packet.to_bytes()
+            
+            # Format and display packet BEFORE sending
+            hex_str = " ".join(f"{b:02X}" for b in packet_bytes)
+            self.log_display.insert(tk.END, f"  Raw: {hex_str}\n", "request")
+            
+            # Parse and display
+            operation = self.operation_var.get()
+            self.log_display.insert(tk.END, f"  Operation: {operation.replace('_', ' ').title()}\n", "request")
+            self.log_display.insert(tk.END, f"  Device Address: {packet.device_address}\n", "request")
+            
+            # Now actually send the packet
             success = self.serial_connection.send_data(packet_bytes)
             if not success:
+                self.log_display.insert(tk.END, f"  STATUS: ❌ Failed to send packet\n", "error")
+                self.log_display.see(tk.END)
                 messagebox.showerror("Error", "Failed to send packet")
                 return
             
-            # Log the request
-            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            self.log_display.insert(tk.END, f"[{timestamp}] TX Request (ID: {self.message_id:02X}):\n", "system")
-            
-            # Format packet display
-            hex_str = " ".join(f"{b:02X}" for b in packet_bytes)
-            self.log_display.insert(tk.END, f"  Raw: {hex_str}\n", "request")
+            # Log success
+            self.log_display.insert(tk.END, f"  STATUS: ✅ Packet sent successfully\n", "system")
             
             # Parse and display
             operation = self.operation_var.get()
@@ -663,6 +680,11 @@ class HostTab:
         if msg_type == 'rx':
             # Add received data to our internal queue for processing
             self.data_queue.put(data)
+            # Also show raw data received for debugging
+            if timestamp:
+                hex_str = " ".join(f"{b:02X}" for b in data)
+                self.log_display.insert(tk.END, f"[{timestamp}] RX Raw Data: {hex_str}\n", "response")
+                self.log_display.see(tk.END)
         elif msg_type == 'error':
             # Log error message
             self.log_display.insert(tk.END, f"Serial Error: {data}\n", "error")
@@ -708,7 +730,19 @@ class HostTab:
             print(f"Error processing response buffer: {e}")
     
     def process_responses(self):
-        """Legacy method - now just schedules next check"""
+        """Process responses from the data queue"""
+        try:
+            # Check if there's data in the queue
+            while not self.data_queue.empty():
+                try:
+                    data = self.data_queue.get_nowait()
+                    # Process the received data
+                    self.handle_raw_data(data)
+                except queue.Empty:
+                    break
+        except Exception as e:
+            print(f"Error in process_responses: {e}")
+        
         # Schedule next check - reduced interval for better responsiveness
         self.frame.after(5, self.process_responses)
     

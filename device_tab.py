@@ -771,7 +771,19 @@ class DeviceTab:
             print(f"Error processing buffer: {e}")
     
     def process_requests(self):
-        """Legacy method - now just schedules next check"""
+        """Process incoming requests from the data queue"""
+        try:
+            # Check if there's data in the queue
+            while not self.data_queue.empty():
+                try:
+                    data = self.data_queue.get_nowait()
+                    # Process the received data
+                    self.handle_raw_data(data)
+                except queue.Empty:
+                    break
+        except Exception as e:
+            print(f"Error in process_requests: {e}")
+        
         # Schedule next check - reduced interval for better responsiveness
         self.frame.after(5, self.process_requests)
     
@@ -961,6 +973,12 @@ class DeviceTab:
         if msg_type == 'rx':
             # Add received data to our internal queue for processing
             self.data_queue.put(data)
+            # Show that we received data for debugging
+            if timestamp and hasattr(self, 'incoming_request_log'):
+                hex_str = " ".join(f"{b:02X}" for b in data)
+                self.incoming_request_log.insert(tk.END, f"[{timestamp}] RX Raw: {hex_str}\n", "data")
+                if self.incoming_auto_scroll.get():
+                    self.incoming_request_log.see(tk.END)
         elif msg_type == 'error':
             # Log error message
             self.incoming_request_log.insert(tk.END, f"Serial Error: {data}\n", "error")

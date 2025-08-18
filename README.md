@@ -3,12 +3,12 @@
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-4.3.0-success)
+![Version](https://img.shields.io/badge/version-4.3.4-success)
 
 A comprehensive cross-platform communication tool for serial and network protocols with AI-powered analysis, featuring advanced debugging capabilities for embedded systems development and testing.
 
-## 🎯 **Current Status: Version 4.3.0**
-**Latest Features**: OpenAI-powered serial communication analysis, intelligent pattern recognition, and complete project reorganization for enhanced developer experience.
+## 🎯 **Current Status: Version 4.3.4**
+**Latest Fix**: Resolved serial communication display issues in Host and Device tabs where incoming packets weren't being shown in the logs.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -1272,4 +1272,4 @@ For issues or questions:
 
 ---
 
-**Version 4.3** | **Last Updated: August 2025**
+**Version 4.3.4** | **Last Updated: August 2025**
