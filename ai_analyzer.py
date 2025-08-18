@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 AI Analyzer Module for SerialCOM Tool
-Provides intelligent analysis of serial communication data using OpenAI API
+Provides intelligent analysis of serial communication data using OpenAI API.
+
+Note:
+    Configure logging in your application as needed. This module uses a
+    module-level logger.
 """
 
 import openai
@@ -13,8 +17,8 @@ from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, asdict
 import logging
 
-# Configure logging for AI analysis
-logging.basicConfig(level=logging.INFO)
+# Module-level logger; configure logging in the host application
+# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
