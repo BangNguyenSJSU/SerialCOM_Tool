@@ -10,6 +10,7 @@ import serial.tools.list_ports
 import threading
 import queue
 import datetime
+import time
 import glob
 import platform
 from typing import Optional, List, Callable
@@ -215,7 +216,7 @@ class SerialConnection:
                 # Read data (non-blocking)
                 data = self.serial_port.read(4096)  # Read up to 4KB
                 if not data:
-                    threading.Event().wait(0.005)  # 5ms delay
+                    time.sleep(0.005)  # 5ms delay
                     continue
                 
                 # Add timestamp and put in queue
